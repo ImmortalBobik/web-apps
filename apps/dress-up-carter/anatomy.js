@@ -126,11 +126,11 @@ for (const [s, k, g] of [[-1, "L", 1], [1, "R", 2]]) {
 // Legs
 for (const [s, k, g] of [[-1, "L", 3], [1, "R", 4]]) {
   const hp = J["hip" + k], kn = J["knee" + k], an = J["ankle" + k], toe = J["toe" + k];
-  coneP(hp, kn, 0.074, 0.047, g, "thigh" + k);
-  ellP(lerp(hp, kn, 0.45).add(V(s * 0.008, 0, 0.022)), V(0.054, 0.16, 0.05), g, "thigh" + k);   // quads
+  coneP(hp, kn, 0.074, 0.043, g, "thigh" + k);
+  ellP(lerp(hp, kn, 0.4).add(V(s * 0.008, 0, 0.02)), V(0.054, 0.15, 0.05), g, "thigh" + k);    // quads
   ellP(lerp(hp, kn, 0.45).add(V(0, 0, -0.025)), V(0.05, 0.15, 0.047), g, "thigh" + k);         // hamstrings
-  ellP(kn.clone().add(V(0, 0, 0.006)), V(0.036, 0.04, 0.036), g, "shin" + k);
-  coneP(kn, an, 0.045, 0.028, g, "shin" + k);
+  ellP(kn.clone().add(V(0, 0, 0.004)), V(0.03, 0.034, 0.03), g, "shin" + k);
+  coneP(kn, an, 0.041, 0.028, g, "shin" + k);
   ellP(lerp(kn, an, 0.28).add(V(s * 0.004, 0, -0.022)), V(0.042, 0.1, 0.04), g, "shin" + k);   // calves
   coneP(an.clone().add(V(0, -0.02, 0)), toe, 0.032, 0.022, g, "foot" + k);
   ellP(an.clone().add(V(0, -0.05, -0.028)), V(0.03, 0.032, 0.038), g, "foot" + k);               // heel
@@ -349,7 +349,7 @@ function wrinkle(pos, nor, spec) {
     if (o.group === 1 || o.group === 2) bunch += 1.2 * near(P, J[o.group === 1 ? "elbowL" : "elbowR"], 0.06);
     if (o.group === 3 || o.group === 4) {
       const k = o.group === 3 ? "L" : "R";
-      bunch += 1.0 * near(P, J["knee" + k], 0.07) + 1.4 * Math.exp(-((y - 0.14) ** 2) / 0.003);
+      bunch += 0.45 * near(P, J["knee" + k], 0.06) + 1.4 * Math.exp(-((y - 0.14) ** 2) / 0.003);
     }
     if (o.group === 0) bunch += 0.9 * Math.exp(-((y - (spec.kind === "pants" ? 0.97 : 0.92)) ** 2) / 0.002);
     // folds run mostly around the limb: high frequency in y, low around

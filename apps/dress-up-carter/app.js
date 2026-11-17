@@ -252,7 +252,7 @@ const mirror = (fn) => [fn(-1), fn(1)];
 /* ------------------------------------------------------------------ *
  * Anatomy — see anatomy.js: one smooth skinned body on a ~20-bone skeleton
  * ------------------------------------------------------------------ */
-const SKIN = new THREE.Color(0x74503f);
+const SKIN = new THREE.Color(0x8a5a40); // warm golden brown, as in the reference photos
 const HAIR = 0x120b07;
 const skin = new THREE.MeshPhysicalMaterial({
   color: SKIN, roughness: 0.5, sheen: 0.5, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xc0705a),
@@ -270,16 +270,17 @@ const profile = (y) => { const t = torsoSize(y); return { w: t.w, d: t.d, bf: 0 
 const RAD = { thigh: [0.074, 0.06, 0.047], shin: [0.045, 0.04, 0.028] };
 
 /* ---------- Sculpted head ---------- */
-const HB = { x: 0.072, y: 0.111, z: 0.098 }; // base head radii
+const HB = { x: 0.071, y: 0.112, z: 0.098 }; // base head radii
 // Proportions follow the classic rules: eyes on the vertical midline of the head,
 // face split into thirds (hairline → brow → nose base → chin), mouth a third of the way to the chin.
-const EYE = { x: 0.032, y: 0.003 };
+const EYE = { x: 0.0305, y: 0.003 };
 const EYE_R = 0.0122;
-const smile = (x) => 4 * x * x;
+const smile = (x) => 6.5 * x * x; // soft, closed smile — corners lifted
 const F = { brow: 0.024, noseTip: -0.026, alae: -0.03, nostril: -0.033, lipU: -0.0505, lipLine: -0.057, lipL: -0.0635, crease: -0.074, chin: -0.09 };
 
 function shapeHead(d) {
   let x = d.x * HB.x, y = d.y * HB.y, z = d.z * HB.z;
+  if (y < 0) y *= 0.93; // more compact lower face
   if (d.z > 0) {
     // a real face is close to a vertical plane; the lower face sits slightly behind the brow
     const yn = y / HB.y, flat = HB.z * (1 - Math.sqrt(Math.max(0, 1 - yn * yn)));
@@ -288,26 +289,26 @@ function shapeHead(d) {
   }
   if (z < 0) z *= 1 + 0.12 * sm(-0.03, 0.05, y);          // occipital bulge
   const low = sm(0.0, -0.1, y);
-  x *= 1 - 0.2 * low;                                      // narrower jaw
+  x *= 1 - 0.21 * low;                                     // slim, tapered jaw
   if (z < 0) z *= 1 - 0.4 * sm(-0.02, -0.1, y);             // tuck into the neck
   const front = sm(0.1, 0.6, d.z);
   const ax = Math.abs(x);
   let dz = 0;
   dz += 0.006 * gauss(ax, y, 0.028, F.brow, 0.022, 0.008);  // brow ridge
   dz -= 0.012 * gauss(ax, y, EYE.x, EYE.y, 0.013, 0.009);   // eye sockets
-  dz += 0.007 * gauss(ax, y, 0.045, -0.016, 0.013, 0.012);  // high cheekbones
+  dz += 0.0085 * gauss(ax, y, 0.044, -0.012, 0.013, 0.012); // prominent, high cheekbones
   dz -= 0.0015 * gauss(ax, y, 0.042, -0.05, 0.012, 0.015);  // soft cheek hollow beside the mouth
   const bridge = sm(0.016, -0.022, y) * sm(-0.04, -0.03, y);
   dz += (0.0025 + 0.0065 * sm(0.014, -0.022, y)) * Math.exp(-(x * x) / (2 * 0.0072 ** 2)) * bridge; // nose bridge
-  dz += 0.009 * gauss(x, y, 0, F.noseTip, 0.0115, 0.0085);  // broad nose tip
-  dz += 0.008 * gauss(ax, y, 0.0185, F.alae, 0.0075, 0.006); // nostril wings
+  dz += 0.0088 * gauss(x, y, 0, F.noseTip, 0.0095, 0.0085); // rounded nose tip
+  dz += 0.0075 * gauss(ax, y, 0.0165, F.alae, 0.007, 0.006); // nostril wings (medium width)
   const ys = y - smile(x);
   dz += 0.002 * gauss(x, y, 0, -0.044, 0.016, 0.009);        // philtrum area
   dz += 0.006 * gauss(x, ys, 0, F.lipU, 0.0128, 0.0032);     // upper lip (full)
   dz += 0.0072 * gauss(x, ys, 0, F.lipL, 0.012, 0.0044);     // lower lip (full)
   dz -= 0.0045 * gauss(x, ys, 0, F.lipLine, 0.0155, 0.0011); // lip line
   dz -= 0.0035 * gauss(x, y, 0, F.crease, 0.014, 0.0028);    // under-lip crease
-  dz += 0.01 * gauss(x, y, 0, F.chin, 0.018, 0.011);         // chin
+  dz += 0.009 * gauss(x, y, 0, F.chin, 0.016, 0.011);        // defined chin
   z += dz * front;
   x += Math.sign(x) * (0.006 * gauss(ax, y, 0.058, -0.065, 0.012, 0.018) + 0.003 * gauss(ax, y, 0.05, -0.022, 0.012, 0.014)) * sm(-0.2, 0.3, d.z);
   return V(x, y, z);
@@ -322,7 +323,7 @@ function hairline(d) {
 function hairThick(d, p) {
   const fz = d.z / (Math.hypot(d.x, d.z) + 1e-6);
   let t = 0.004 + 0.044 * sm(0.3, 0.95, d.y) + 0.008 * sm(0.5, 0.9, fz) * sm(0.3, 0.75, d.y);
-  t *= 1 - 0.55 * sm(0, 0.8, -fz) * sm(0.85, 0.3, d.y);
+  t *= 1 - 0.3 * sm(0, 0.8, -fz) * sm(0.85, 0.3, d.y);
   t *= 0.25 + 0.75 * sm(0, 0.045, p.y - hairline(d));        // short taper near the hairline
   return Math.max(0.003, t);
 }
@@ -339,8 +340,8 @@ function headColor(p, d, out) {
   const bow = 0.0018 * Math.exp(-(p.x * p.x) / (2 * 0.004 ** 2)) - 0.001 * Math.exp(-((Math.abs(p.x) - 0.007) ** 2) / (2 * 0.003 ** 2));
   const lipU = gauss(p.x, ys + bow * sm(F.lipLine, F.lipU + 0.004, p.y), 0, F.lipU, 0.0135, 0.0033);
   const lipL = gauss(p.x, ys, 0, F.lipL, 0.0125, 0.0042);
-  c.lerp(new THREE.Color(0x5a3126), sm(0.5, 0.85, lipU) * front);
-  c.lerp(new THREE.Color(0x744236), sm(0.5, 0.85, lipL) * front);
+  c.lerp(new THREE.Color(0x7a4436), sm(0.5, 0.85, lipU) * front);
+  c.lerp(new THREE.Color(0x8e5246), sm(0.5, 0.85, lipL) * front);
   c.lerp(new THREE.Color(0x2a120d), 0.75 * front * gauss(p.x, ys, 0, F.lipLine, 0.0135, 0.0008)); // mouth line
   c.lerp(new THREE.Color(0x24130c), 0.75 * front * gauss(ax, p.y, 0.0085, F.nostril, 0.0035, 0.0022)); // nostrils
   // light moustache + chin stubble
@@ -472,8 +473,8 @@ function buildHead() {
   const lidSkin = new THREE.MeshPhysicalMaterial({ color: SKIN.clone().multiplyScalar(0.88), roughness: 0.5, sheen: 0.4, sheenColor: new THREE.Color(0xc0705a), side: THREE.DoubleSide });
   const lash = new THREE.MeshStandardMaterial({ color: 0x080504, roughness: 0.8, side: THREE.DoubleSide });
   // Almond-shaped lids: the lid edge follows a curve instead of a straight cut.
-  const upperEdge = (s) => 1.3 + 0.45 * (1 - s) ** 1.4;
-  const lowerEdge = (s) => 1.9 - 0.32 * (1 - s) ** 1.4;
+  const upperEdge = (s) => 1.37 + 0.38 * (1 - s) ** 1.4; // slightly hooded, narrow almond
+  const lowerEdge = (s) => 1.84 - 0.24 * (1 - s) ** 1.4;
   function lidGeo(r, from, to, phi0 = 0, phi1 = Math.PI) {
     const pos = [], idx = [], NP = 40, NV = 10;
     for (let i = 0; i <= NP; i++) {
@@ -518,8 +519,8 @@ function buildHead() {
     for (let i = 0; i < 110; i++) {
       const t = r();
       const x = 0.011 + t * 0.042;
-      const yc = F.brow - 0.004 + 0.0065 * Math.sin(Math.PI * Math.min(1, t * 1.25)) - 0.003 * t;
-      const spread = 0.0042 * (1 - t) + 0.0018;
+      const yc = F.brow - 0.0065 + 0.0035 * Math.sin(Math.PI * Math.min(1, t * 1.25)) - 0.002 * t; // low, straight brows
+      const spread = 0.005 * (1 - t) + 0.0024;
       const y = yc + (r() - 0.5) * spread;
       const { p, n } = hitFace(s * x, y);
       p.addScaledVector(n, 0.0012);
@@ -551,7 +552,7 @@ function buildHair() {
     pts.push(V(Math.cos(a) * 0.0045, Math.sin(a) * 0.0045, t * 0.024 - 0.012));
   }
   const coilGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.0016, 4);
-  const N = 3200;
+  const N = 1700;
   const coils = new THREE.InstancedMesh(coilGeo, hairMat, N);
   const r = rng(42), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), c = new THREE.Color();
   let i = 0, guard = 0;
@@ -579,6 +580,54 @@ function buildHair() {
   coils.count = i;
   coils.castShadow = true;
   hair.add(coils);
+  hair.add(ringlets(hairMat));
+}
+
+// Loose, springy ringlets (his signature look) plus a curly fringe falling over the forehead to the brows.
+function ringlets(hairMat) {
+  const pts = [];
+  for (let i = 0; i <= 40; i++) {
+    const t = i / 40, a = t * Math.PI * 2 * 2.6, rad = 0.0062 * (1 - 0.25 * t);
+    pts.push(V(Math.cos(a) * rad, Math.sin(a) * rad, t * 0.042 - 0.021));
+  }
+  const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 36, 0.0021, 5);
+  const N = 1500;
+  const mesh = new THREE.InstancedMesh(geo, hairMat, N);
+  const r = rng(77), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color(), DOWN = V(0, -1, 0);
+  let i = 0, guard = 0;
+  const put = (pos, axis, sc) => {
+    q.setFromUnitVectors(Zf, axis.normalize());
+    q.multiply(new THREE.Quaternion().setFromAxisAngle(Zf, r() * 6.3));
+    m4.compose(pos, q, V(sc, sc, sc));
+    mesh.setMatrixAt(i, m4);
+    c.setHex(HAIR).offsetHSL(0, 0.02, r() * 0.022 - 0.004); // near-black with a faint brown lift
+    mesh.setColorAt(i, c);
+    i++;
+  };
+  // fringe: ringlets hanging from the front hairline down onto the forehead
+  for (let k = 0; k < 70 && i < N; k++) {
+    const x = (r() - 0.5) * 0.1;
+    const yc = 0.066 - r() * r() * 0.03 - Math.abs(x) * 0.12;   // most stay high, a few fall low
+    const { p, n } = hitFace(x, yc);
+    put(p.addScaledVector(n, 0.005 + r() * 0.008), V((r() - 0.5) * 0.9 + x * 5, -1, 0.15 + r() * 0.35), 0.65 + r() * 0.35);
+  }
+  // the rest of the head: ringlets springing outward and falling with gravity
+  while (i < N && guard++ < 200000) {
+    const d = V(r() * 2 - 1, r() * 2 - 1, r() * 2 - 1);
+    if (d.lengthSq() > 1 || d.lengthSq() < 0.01) continue;
+    d.normalize();
+    const p = shapeHead(d);
+    if (p.y < hairline(d) + 0.004) continue;
+    const th = hairThick(d, p);
+    if (r() > 0.2 + th / 0.035) continue;
+    const n = hairNormal(p);
+    const pos = p.addScaledVector(n, 0.004 + (0.35 + 0.65 * Math.sqrt(r())) * th * 0.9);
+    const axis = n.clone().multiplyScalar(0.7).addScaledVector(DOWN, 0.55 * (1 - Math.max(0, d.y))).add(V(r() - 0.5, r() - 0.5, r() - 0.5).multiplyScalar(0.7));
+    put(pos, axis, (0.75 + r() * 0.4) * (th < 0.012 ? 0.7 : 1));
+  }
+  mesh.count = i;
+  mesh.castShadow = true;
+  return mesh;
 }
 
 buildBody();
