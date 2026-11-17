@@ -82,9 +82,10 @@ function smin(a, b, k) {
   const h = Math.max(k - Math.abs(a - b), 0) / k;
   return Math.min(a, b) - h * h * k * 0.25;
 }
+const smax = (a, b, k) => -smin(-a, -b, k);
 
 // groups: 0 torso, 1 armL, 2 armR, 3 legL, 4 legR
-const GROUP_K = [0.055, 0.02, 0.02, 0.026, 0.026];
+const GROUP_K = [0.065, 0.032, 0.032, 0.042, 0.042];
 const PRIMS = [];
 function ellP(c, r, group, bone) {
   const m = 0.05;
@@ -105,7 +106,7 @@ ellP(V(0, 1.09, 0.004), V(0.128, 0.11, 0.09), 0, "spine");                // wai
 ellP(V(0, 1.27, 0), V(0.138, 0.165, 0.1), 0, "chest");                    // ribcage
 ellP(V(0, 1.4, 0.008), V(0.14, 0.06, 0.085), 0, "chest");                 // upper chest
 for (const s of [-1, 1]) {
-  ellP(V(s * 0.066, 1.33, 0.052), V(0.07, 0.05, 0.04), 0, "chest");       // pecs
+  ellP(V(s * 0.066, 1.33, 0.048), V(0.07, 0.05, 0.038), 0, "chest");      // pecs
   ellP(V(s * 0.098, 1.26, -0.02), V(0.052, 0.12, 0.062), 0, "chest");    // lats
   ellP(V(s * 0.178, 1.415, -0.004), V(0.046, 0.056, 0.048), 0, s < 0 ? "upperArmL" : "upperArmR"); // deltoids
 }
@@ -116,21 +117,21 @@ coneP(V(0, 1.44, -0.012), V(0, 1.665, -0.005), 0.054, 0.045, 0, "neck");  // nec
 for (const [s, k, g] of [[-1, "L", 1], [1, "R", 2]]) {
   const sh = J["shoulder" + k], el = J["elbow" + k], wr = J["wrist" + k];
   coneP(sh, el, 0.043, 0.033, g, "upperArm" + k);
-  ellP(lerp(sh, el, 0.45).add(V(0, 0, 0.012)), V(0.033, 0.075, 0.035), g, "upperArm" + k);  // biceps
-  ellP(lerp(sh, el, 0.4).add(V(0, 0, -0.014)), V(0.034, 0.08, 0.034), g, "upperArm" + k);   // triceps
-  ellP(el.clone(), V(0.033, 0.034, 0.033), g, "forearm" + k);
+  ellP(lerp(sh, el, 0.45).add(V(0, 0, 0.01)), V(0.03, 0.08, 0.032), g, "upperArm" + k);    // biceps
+  ellP(lerp(sh, el, 0.4).add(V(0, 0, -0.012)), V(0.031, 0.085, 0.031), g, "upperArm" + k);  // triceps
+  ellP(el.clone(), V(0.03, 0.03, 0.03), g, "forearm" + k);
   coneP(el, wr, 0.035, 0.023, g, "forearm" + k);
-  ellP(lerp(el, wr, 0.25).add(V(s * 0.004, 0, 0.004)), V(0.037, 0.075, 0.033), g, "forearm" + k); // forearm flexors
+  ellP(lerp(el, wr, 0.25).add(V(s * 0.004, 0, 0.004)), V(0.034, 0.08, 0.03), g, "forearm" + k);   // forearm flexors
 }
 // Legs
 for (const [s, k, g] of [[-1, "L", 3], [1, "R", 4]]) {
   const hp = J["hip" + k], kn = J["knee" + k], an = J["ankle" + k], toe = J["toe" + k];
   coneP(hp, kn, 0.074, 0.047, g, "thigh" + k);
-  ellP(lerp(hp, kn, 0.45).add(V(s * 0.008, 0, 0.022)), V(0.057, 0.15, 0.054), g, "thigh" + k); // quads
-  ellP(lerp(hp, kn, 0.45).add(V(0, 0, -0.025)), V(0.054, 0.14, 0.05), g, "thigh" + k);         // hamstrings
-  ellP(kn.clone().add(V(0, 0, 0.008)), V(0.04, 0.044, 0.04), g, "shin" + k);
+  ellP(lerp(hp, kn, 0.45).add(V(s * 0.008, 0, 0.022)), V(0.054, 0.16, 0.05), g, "thigh" + k);   // quads
+  ellP(lerp(hp, kn, 0.45).add(V(0, 0, -0.025)), V(0.05, 0.15, 0.047), g, "thigh" + k);         // hamstrings
+  ellP(kn.clone().add(V(0, 0, 0.006)), V(0.036, 0.04, 0.036), g, "shin" + k);
   coneP(kn, an, 0.045, 0.028, g, "shin" + k);
-  ellP(lerp(kn, an, 0.28).add(V(s * 0.004, 0, -0.022)), V(0.045, 0.095, 0.043), g, "shin" + k); // calves
+  ellP(lerp(kn, an, 0.28).add(V(s * 0.004, 0, -0.022)), V(0.042, 0.1, 0.04), g, "shin" + k);   // calves
   coneP(an.clone().add(V(0, -0.02, 0)), toe, 0.032, 0.022, g, "foot" + k);
   ellP(an.clone().add(V(0, -0.05, -0.028)), V(0.03, 0.032, 0.038), g, "foot" + k);               // heel
 }
@@ -142,8 +143,8 @@ const inBB = (p, x, y, z) => x >= p.bb[0] && y >= p.bb[1] && z >= p.bb[2] && x <
 function combine(g) {
   let d = smin(g[0], g[3], 0.03);
   d = smin(d, g[4], 0.03);
-  d = smin(d, g[1], 0.016);
-  return smin(d, g[2], 0.016);
+  d = smin(d, g[1], 0.02);
+  return smin(d, g[2], 0.02);
 }
 
 const _g = [1, 1, 1, 1, 1];
@@ -275,11 +276,36 @@ function skinWeights(pos) {
   return { si, sw };
 }
 
-function geometryFrom(pos, idx, nor) {
+// Taubin smoothing: alternating shrink/inflate Laplacian steps remove the grid ripples
+// of the polygoniser without shrinking the surface.
+function taubin(pos, idx, iters = 4, lambda = 0.5, mu = -0.53) {
+  const n = pos.length / 3, nb = Array.from({ length: n }, () => new Set());
+  for (let t = 0; t < idx.length; t += 3) {
+    const a = idx[t], b = idx[t + 1], c = idx[t + 2];
+    nb[a].add(b).add(c); nb[b].add(a).add(c); nb[c].add(a).add(b);
+  }
+  const lists = nb.map((s) => [...s]), tmp = new Float32Array(pos.length);
+  for (let it = 0; it < iters * 2; it++) {
+    const f = it % 2 ? mu : lambda;
+    for (let i = 0; i < n; i++) {
+      const L = lists[i];
+      if (!L.length) { tmp[i * 3] = pos[i * 3]; tmp[i * 3 + 1] = pos[i * 3 + 1]; tmp[i * 3 + 2] = pos[i * 3 + 2]; continue; }
+      let sx = 0, sy = 0, sz = 0;
+      for (const j of L) { sx += pos[j * 3]; sy += pos[j * 3 + 1]; sz += pos[j * 3 + 2]; }
+      for (let k = 0; k < 3; k++) {
+        const avg = (k === 0 ? sx : k === 1 ? sy : sz) / L.length;
+        tmp[i * 3 + k] = pos[i * 3 + k] + f * (avg - pos[i * 3 + k]);
+      }
+    }
+    pos.set(tmp);
+  }
+}
+
+function geometryFrom(pos, idx) {
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
   g.setIndex(idx);
+  g.computeVertexNormals();
   const { si, sw } = skinWeights(pos);
   g.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(si, 4));
   g.setAttribute("skinWeight", new THREE.Float32BufferAttribute(sw, 4));
@@ -291,8 +317,9 @@ export function bodyGeometry() {
   const { field, nx, ny, nz } = sampleBody();
   const { pos, idx } = surfaceNets(field, nx, ny, nz, GRID.x0, GRID.y0, GRID.z0, GRID.h);
   const o = {};
-  const nor = finalize(pos, idx, (x, y, z) => evalBody(x, y, z, o).d);
-  return geometryFrom(pos, idx, nor);
+  finalize(pos, idx, (x, y, z) => evalBody(x, y, z, o).d);
+  taubin(pos, idx, 5);
+  return geometryFrom(pos, idx);
 }
 
 /* ------------------------------------------------------------------ *
@@ -307,6 +334,30 @@ function chainParam(x, y, z, a, b, c) {
   };
   const [t1, d1] = seg(a, b), [t2, d2] = seg(b, c);
   return d1 < d2 ? t1 : 1 + t2;
+}
+const HEM_K = 0.008; // rounded, soft fabric edges instead of razor-cut hems
+// Soft, low-frequency fabric wrinkles that bunch up where cloth gathers: elbows, knees, waist, ankles.
+function wrinkle(pos, nor, spec) {
+  const o = {}, n = pos.length / 3;
+  const near = (p, q, r) => Math.exp(-((p.x - q.x) ** 2 + (p.y - q.y) ** 2 + (p.z - q.z) ** 2) / (r * r));
+  const P = V(0, 0, 0);
+  for (let i = 0; i < n; i++) {
+    const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+    P.set(x, y, z);
+    evalBody(x, y, z, o);
+    let bunch = 0.06;
+    if (o.group === 1 || o.group === 2) bunch += 1.2 * near(P, J[o.group === 1 ? "elbowL" : "elbowR"], 0.06);
+    if (o.group === 3 || o.group === 4) {
+      const k = o.group === 3 ? "L" : "R";
+      bunch += 1.0 * near(P, J["knee" + k], 0.07) + 1.4 * Math.exp(-((y - 0.14) ** 2) / 0.003);
+    }
+    if (o.group === 0) bunch += 0.9 * Math.exp(-((y - (spec.kind === "pants" ? 0.97 : 0.92)) ** 2) / 0.002);
+    // folds run mostly around the limb: high frequency in y, low around
+    const w = Math.sin(y * 140 + Math.sin(x * 37 + z * 11) * 2.6 + Math.cos(z * 31 - y * 9) * 2.2) * 0.5
+      + Math.sin(y * 83 - x * 52 + z * 27 + Math.sin(y * 23) * 3) * 0.3 + Math.sin(x * 61 + z * 44 + y * 19) * 0.2;
+    const amp = (0.0008 + spec.thick * 0.09) * bunch;
+    pos[i * 3] += nor[i * 3] * w * amp; pos[i * 3 + 1] += nor[i * 3 + 1] * w * amp; pos[i * 3 + 2] += nor[i * 3 + 2] * w * amp;
+  }
 }
 const SLEEVE = { none: -0.1, short: 0.45, "3q": 1.5, long: 1.96 };
 const LEG = { waist: -0.2, shorts: 0.78, long: 1.93 };
@@ -336,13 +387,15 @@ export function garmentGeometry(spec) {
   const F = new Float32Array(field.length);
   for (let iz = 0, i = 0; iz < nz; iz++) for (let iy = 0; iy < ny; iy++) for (let ix = 0; ix < nx; ix++, i++) {
     const d = field[i] - spec.thick;
-    F[i] = d > 0.03 ? d : Math.max(d, cutFor(spec, group[i], x0 + ix * h, y0 + iy * h, z0 + iz * h));
+    F[i] = d > 0.03 ? d : smax(d, cutFor(spec, group[i], x0 + ix * h, y0 + iy * h, z0 + iz * h), HEM_K);
   }
   const { pos, idx } = surfaceNets(F, nx, ny, nz, x0, y0, z0, h);
   const o = {};
-  const sdf = (x, y, z) => { evalBody(x, y, z, o); return Math.max(o.d - spec.thick, cutFor(spec, o.group, x, y, z)); };
+  const sdf = (x, y, z) => { evalBody(x, y, z, o); return smax(o.d - spec.thick, cutFor(spec, o.group, x, y, z), HEM_K); };
   const nor = finalize(pos, idx, sdf);
-  const geo = geometryFrom(pos, idx, nor);
+  wrinkle(pos, nor, spec);
+  taubin(pos, idx, 3);
+  const geo = geometryFrom(pos, idx);
   return withUVs(geo);
 }
 
@@ -414,11 +467,12 @@ export function handGeometry(s) {
     F[i] = y > w.y + 0.012 ? Math.max(0.01, y - w.y - 0.012) : sdf(x0 + ix * h, y, z0 + iz * h);
   }
   const { pos, idx } = surfaceNets(F, nx, ny, nz, x0, y0, z0, h);
-  const nor = finalize(pos, idx, sdf);
+  finalize(pos, idx, sdf);
+  taubin(pos, idx, 3);
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
   g.setIndex(idx);
+  g.computeVertexNormals();
   return g;
 }
 
@@ -454,4 +508,74 @@ export function makeSkinned(geo, material, skeleton) {
   m.frustumCulled = false;
   m.castShadow = m.receiveShadow = true;
   return m;
+}
+
+/* ------------------------------------------------------------------ *
+ * Shoes: built around the actual foot, with a real sole
+ * ------------------------------------------------------------------ */
+const SHOE_TOP = { low: 1.9, high: 1.78, mid: 1.62, boot: 1.45 };
+export function shoeGeometry(spec) {
+  const { thick = 0.011, soleH = 0.02, top = "low", upper = 0xffffff, sole = 0xdddddd } = spec;
+  const cutS = SHOE_TOP[top];
+  const o = {}, o2 = {};
+  const field = (x, y, z) => {
+    evalBody(x, y, z, o);
+    if (o.group !== 3 && o.group !== 4) return Math.max(0.01, o.d);
+    const k = o.group === 3 ? "L" : "R";
+    const s = chainParam(x, y, z, J["hip" + k], J["knee" + k], J["ankle" + k]);
+    const up = smax(o.d - thick, (cutS - s) * 0.41, 0.006);
+    evalBody(x, 0.032, z, o2);
+    const print = o2.group === 3 || o2.group === 4 ? o2.d : 0.05;
+    const so = smax(print - thick - 0.004, smax(y - soleH, -y, 0.002), 0.004);
+    return smin(up, so, 0.01);
+  };
+  const h = 0.0045, yTop = 0.09 + (2 - cutS) * 0.41 + 0.03;
+  const x0 = -0.22, y0 = -0.006, z0 = -0.14;
+  const nx = Math.ceil(0.44 / h), ny = Math.ceil((yTop - y0) / h), nz = Math.ceil(0.4 / h);
+  const F = new Float32Array(nx * ny * nz);
+  for (let iz = 0, i = 0; iz < nz; iz++) for (let iy = 0; iy < ny; iy++) for (let ix = 0; ix < nx; ix++, i++) {
+    const x = x0 + ix * h;
+    F[i] = Math.abs(Math.abs(x) - 0.1) > 0.09 ? 0.05 : field(x, y0 + iy * h, z0 + iz * h);
+  }
+  const { pos, idx } = surfaceNets(F, nx, ny, nz, x0, y0, z0, h);
+  finalize(pos, idx, field);
+  taubin(pos, idx, 2);
+  const g = geometryFrom(pos, idx);
+  const cu = new THREE.Color(upper), cs = new THREE.Color(sole), col = new Float32Array(pos.length);
+  for (let i = 0; i < pos.length / 3; i++) {
+    const c = pos[i * 3 + 1] < soleH + 0.003 ? cs : cu;
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  return g;
+}
+
+/* ------------------------------------------------------------------ *
+ * Ear: helix rim, inner hollow (concha), tragus and lobe — in local ear space
+ * (x out from the head, y up, z forward). Mirror with scale.x for the other side.
+ * ------------------------------------------------------------------ */
+export function earGeometry() {
+  const sdf = (x, y, z) => {
+    let d = sdEllipsoid(x, y, z, 0.0055, 0.027, 0.0155);
+    const q = Math.hypot(y / 1.75, z);
+    let rim = Math.hypot(q - 0.0142, x - 0.0032) - 0.0026;
+    rim = smax(rim, (z - 0.009) * 1.2, 0.004);
+    d = smin(d, rim, 0.004);
+    d = smin(d, sdEllipsoid(x - 0.001, y + 0.024, z - 0.002, 0.005, 0.0085, 0.007), 0.004); // lobe
+    d = smin(d, sdEllipsoid(x - 0.004, y + 0.004, z - 0.0105, 0.0028, 0.0042, 0.003), 0.002); // tragus
+    d = smax(d, -sdEllipsoid(x - 0.0078, y + 0.002, z - 0.0005, 0.0052, 0.0115, 0.0082), 0.002); // concha
+    return d;
+  };
+  const h = 0.0007, x0 = -0.009, y0 = -0.042, z0 = -0.026;
+  const nx = Math.ceil(0.025 / h), ny = Math.ceil(0.08 / h), nz = Math.ceil(0.05 / h);
+  const F = new Float32Array(nx * ny * nz);
+  for (let iz = 0, i = 0; iz < nz; iz++) for (let iy = 0; iy < ny; iy++) for (let ix = 0; ix < nx; ix++, i++) F[i] = sdf(x0 + ix * h, y0 + iy * h, z0 + iz * h);
+  const { pos, idx } = surfaceNets(F, nx, ny, nz, x0, y0, z0, h);
+  finalize(pos, idx, sdf);
+  taubin(pos, idx, 2);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
 }

@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
-import { J, createSkeleton, bodyGeometry, garmentGeometry, handGeometry, makeSkinned, frontZ, torsoSize } from "./anatomy.js";
+import { J, createSkeleton, bodyGeometry, garmentGeometry, handGeometry, shoeGeometry, earGeometry, makeSkinned, frontZ, torsoSize } from "./anatomy.js";
 
 /* ------------------------------------------------------------------ *
  * Scene setup — studio lighting with an environment map for real reflections
@@ -452,21 +452,13 @@ function buildBody() {
   }
 }
 
+const EAR_GEO = earGeometry();
 function buildEar(s) {
-  const g = new THREE.Group();
-  const em = skin;
-  g.add(ell(0.008, 0.027, 0.016, em));
-  const helix = new THREE.Mesh(new THREE.TorusGeometry(0.0125, 0.0022, 8, 32, Math.PI * 1.5), em);
-  helix.rotation.set(0, Math.PI / 2, Math.PI * 0.6);
-  helix.scale.set(1, 1.8, 0.6);
-  helix.position.set(0.004, 0.003, -0.001);
-  g.add(helix);
-  g.add(ell(0.0055, 0.008, 0.007, em, V(0.002, -0.024, 0.002)));            // lobe
-  g.add(ell(0.003, 0.011, 0.007, new THREE.MeshStandardMaterial({ color: SKIN.clone().multiplyScalar(0.55), roughness: 0.7 }), V(0.0065, -0.002, 0.002))); // concha
-  g.position.set(s * 0.071, -0.008, -0.014);
-  g.rotation.y = s * 0.25;
-  g.scale.x = s;
-  return g;
+  const e = new THREE.Mesh(EAR_GEO, skin);
+  e.position.set(s * 0.068, -0.008, -0.014);
+  e.rotation.y = s * 0.28;
+  e.scale.x = s;
+  return e;
 }
 
 function buildHead() {
@@ -550,7 +542,6 @@ function buildHair() {
   const hairMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.6, sheen: 0.5, sheenRoughness: 0.4, sheenColor: new THREE.Color(0x3a2a1f) });
   const capMat = new THREE.MeshStandardMaterial({ color: 0x140c08, roughness: 0.95 });
   const inHair = (p, d) => p.y > hairline(d) - 0.002;
-  hair.add(headPatch(inHair, () => 0.0012, capMat));
   hair.add(headPatch((p, d) => p.y > hairline(d) + 0.006, (p, d) => 0.6 * hairThick(d, p), capMat));
 
   // tight coils — the curly top
@@ -597,7 +588,16 @@ buildHead();
  * Clothing builders (fit to the anatomy above)
  * ------------------------------------------------------------------ */
 const garmentCache = new Map();
+const FABRIC = canvasTex((g, s) => {
+  const img = g.createImageData(s, s), r = rng(31);
+  for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) {
+    const v = 128 + (r() - 0.5) * 26 + Math.sin(x * 0.9) * 8 + Math.sin(y * 0.9) * 8;
+    img.data.set([v, v, v, 255], (y * s + x) * 4);
+  }
+  g.putImageData(img, 0, 0);
+}, [10, 10]);
 function garment(spec, m) {
+  if (!m.bumpMap && !(m.metalness > 0.5)) { m.bumpMap = FABRIC; m.bumpScale = 0.9; }
   const key = JSON.stringify(spec);
   if (!garmentCache.has(key)) { const g = garmentGeometry(spec); g.userData.keep = true; garmentCache.set(key, g); }
   return makeSkinned(garmentCache.get(key), m, RIG.skeleton);
@@ -607,14 +607,26 @@ function top(m, sleeve = "short", thick = 0.008, hem = 0.87) {
   return garment({ kind: "top", sleeve, thick: Math.round(thick * 1000) / 1000, hem }, m);
 }
 function collar(m, r = 0.062, tube = 0.012) {
-  const t = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 10, 32), m);
+  const t = new THREE.Mesh(new THREE.TorusGeometry(r, tube * 0.75, 12, 40), m);
   t.position.set(0, 1.51, 0.006);
   t.rotation.x = Math.PI / 2 - 0.18;
-  t.scale.set(1.08, 1, 1);
+  t.scale.set(1.08, 1, 0.55); // a flat fabric fold, not a tube
   return t;
 }
 function pants(m, len = "long", ex = 0.012) {
   return [garment({ kind: "pants", len, thick: Math.round(ex * 1000) / 1000, hem: 0.86, waist: len === "waist" ? 1.02 : 1.0 }, m)];
+}
+// Realistic shoes: shaped around the actual foot with a proper sole (see anatomy.js).
+const shoeCache = new Map();
+function footShoes(upperMat, soleHex, spec, extras = []) {
+  const upperHex = upperMat.color.getHex();
+  const key = JSON.stringify({ ...spec, upperHex, soleHex });
+  if (!shoeCache.has(key)) { const g = shoeGeometry({ ...spec, upper: upperHex, sole: soleHex }); g.userData.keep = true; shoeCache.set(key, g); }
+  const m = upperMat.clone();
+  m.vertexColors = true;
+  m.color.set(0xffffff);
+  if (m.sheenColor) m.sheenColor.set(upperHex);
+  return group(makeSkinned(shoeCache.get(key), m, RIG.skeleton), extras);
 }
 function shoes({ upper, sole = mat(0xf1f3f5), l = 1, w = 1, h = 1, soleH = 0.016, shaft, extra }) {
   const g = new THREE.Group();
@@ -983,15 +995,15 @@ item("makeup", "circuit", "Circuit glow", "🔌", null, ["tech"], 3, () => {
 /* ---------- Tops ---------- */
 item("top", "tee", "Black tee", "👕", 0x1e1e1e, ["street"], 0, () => {
   const m = mat(0x1e1e1e, { roughness: 0.9 });
-  return group(top(m, "short", 0.007), collar(m, 0.06, 0.006));
+  return group(top(m, "short", 0.007));
 });
 item("top", "hoodie", "Purple hoodie", "🧥", 0x7048e8, ["street", "cozy"], 0, () => {
   const m = mat(0x7048e8, { roughness: 0.95 });
-  const hood = ell(0.14, 0.09, 0.1, m, V(0, 1.53, -0.075));
-  const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.09, 0.02), mat(0x5f3dc4));
-  pocket.position.set(0, 1.0, FZ(1.0, 0.03));
+  const hood = ell(0.11, 0.07, 0.05, m, V(0, 1.5, -0.088));
+  hood.rotation.x = 0.35;
+  const pocket = ell(0.1, 0.045, 0.008, mat(0x6741d9, { roughness: 1 }), V(0, 1.0, FZ(1.0, 0.016)));
   const strings = mirror((s) => cyl(0.003, 0.003, 0.12, mat(0xf8f9fa), V(s * 0.03, 1.43, FZ(1.43, 0.026)), 6));
-  return group(top(m, "long", 0.02), hood, pocket, strings, collar(m, 0.066, 0.017));
+  return group(top(m, "long", 0.02), hood, pocket, strings);
 });
 item("top", "tux", "Tuxedo jacket", "🤵", 0x111111, ["formal"], 0, () => {
   const m = mat(0x121212, { roughness: 0.55 });
@@ -1080,11 +1092,7 @@ item("top", "flannel", "Flannel shirt", "🪵", 0xc92a2a, ["western", "street"],
 /* ---------- Bottoms ---------- */
 item("bottom", "joggers", "Grey joggers", "🩶", 0x868e96, ["street", "cozy"], 0, () => {
   const m = mat(0x868e96, { roughness: 0.95 });
-  const cuffs = mirror((s) => {
-    const k = s < 0 ? "L" : "R", a = J["ankle" + k], kn = J["knee" + k];
-    return taperLimb(a.clone().lerp(kn, 0.06), a.clone().lerp(kn, 0.13), [0.05, 0.05], mat(0x495057), 0.004);
-  });
-  return group(pants(m, "long", 0.012), cuffs);
+  return group(pants(m, "long", 0.012));
 });
 item("bottom", "jeans", "Blue jeans", "👖", 0x2f4b8f, ["street", "western"], 0, () => {
   const m = mat(0x2f4b8f, { roughness: 0.85 });
@@ -1131,18 +1139,12 @@ item("bottom", "clownpants", "Clown pants", "🎪", 0xfab005, ["circus"], 3, () 
 });
 
 /* ---------- Shoes ---------- */
-item("shoes", "sneakers", "White sneakers", "👟", 0xf1f3f5, ["street"], 0, () => shoes({ upper: mat(0xf1f3f5, { roughness: 0.6 }), sole: mat(0xdee2e6) }));
-item("shoes", "chunky", "Chunky red kicks", "❤️", 0xe03131, ["street", "party"], 1, () => shoes({ upper: mat(0xe03131, { roughness: 0.5 }), sole: mat(0xffffff), soleH: 0.032, h: 1.2, w: 1.15 }));
-item("shoes", "boots", "Cowboy boots", "🥾", 0x8b5a2b, ["western"], 1, () => shoes({
-  upper: mat(0x8b5a2b, { roughness: 0.45, clearcoat: 0.3 }), sole: mat(0x3b2414), l: 1.08,
-  shaft: { r: 0.058, top: 0.3 },
-  extra: (s, f) => { const h = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.04, 0.05), mat(0x3b2414)); h.position.set(f.x, 0.02, -0.06); return h; },
-}));
-item("shoes", "oxfords", "Patent oxfords", "🖤", 0x111111, ["formal"], 0, () => shoes({ upper: new THREE.MeshPhysicalMaterial({ color: 0x0c0c0c, roughness: 0.15, clearcoat: 1 }), sole: mat(0x2b2b2b), l: 1.05, h: 0.9 }));
-item("shoes", "moonboots", "Moon boots", "🌙", 0xf1f3f5, ["space"], 1, () => shoes({
-  upper: mat(0xf1f3f5, { roughness: 0.8 }), sole: mat(0x868e96), w: 1.3, h: 1.4, soleH: 0.04,
-  shaft: { r: 0.075, top: 0.22, m: mat(0xe9ecef, { roughness: 0.8 }) },
-}));
+item("shoes", "sneakers", "White sneakers", "👟", 0xf1f3f5, ["street"], 0, () => footShoes(mat(0xf3f4f6, { roughness: 0.6 }), 0xd9dce0, { thick: 0.011, soleH: 0.02, top: "low" }));
+item("shoes", "chunky", "Chunky red kicks", "❤️", 0xe03131, ["street", "party"], 1, () => footShoes(mat(0xe03131, { roughness: 0.5 }), 0xffffff, { thick: 0.015, soleH: 0.036, top: "low" }));
+item("shoes", "boots", "Cowboy boots", "🥾", 0x8b5a2b, ["western"], 1, () => footShoes(mat(0x8b5a2b, { roughness: 0.45, clearcoat: 0.3 }), 0x3b2414, { thick: 0.008, soleH: 0.014, top: "boot" },
+  mirror((s) => { const f = J[s < 0 ? "footL" : "footR"]; const h = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.035, 0.045), mat(0x3b2414)); h.position.set(f.x, 0.018, f.z - 0.09); return h; })));
+item("shoes", "oxfords", "Patent oxfords", "🖤", 0x111111, ["formal"], 0, () => footShoes(new THREE.MeshPhysicalMaterial({ color: 0x0c0c0c, roughness: 0.15, clearcoat: 1 }), 0x2b2b2b, { thick: 0.007, soleH: 0.012, top: "low" }));
+item("shoes", "moonboots", "Moon boots", "🌙", 0xf1f3f5, ["space"], 1, () => footShoes(mat(0xf1f3f5, { roughness: 0.8 }), 0x868e96, { thick: 0.028, soleH: 0.032, top: "mid" }));
 item("shoes", "clownshoes", "Clown shoes", "🤡", 0xe03131, ["circus"], 3, () => shoes({ upper: new THREE.MeshPhysicalMaterial({ color: 0xe00000, roughness: 0.2, clearcoat: 1 }), sole: mat(0xfab005), l: 2.1, w: 1.5, h: 1.3, soleH: 0.025 }));
 item("shoes", "bunny", "Bunny slippers", "🐰", 0xffc9de, ["cozy", "cute"], 2, () => shoes({
   upper: mat(0xffc9de, { roughness: 1, sheen: 1 }), sole: mat(0xffffff, { roughness: 1 }), w: 1.3, h: 1.25,
@@ -1152,7 +1154,7 @@ item("shoes", "bunny", "Bunny slippers", "🐰", 0xffc9de, ["cozy", "cute"], 2, 
     new THREE.Mesh(new THREE.SphereGeometry(0.009, 8, 6), mat(0xff6b8a)).translateX(f.x).translateY(0.06).translateZ(f.z + 0.12),
   ),
 }));
-item("shoes", "goldtops", "Gold high-tops", "🥇", 0xf2b705, ["royal", "party"], 2, () => shoes({ upper: metal(0xf2b705, 0.2), sole: mat(0xffffff), h: 1.1, shaft: { r: 0.06, top: 0.13, m: metal(0xf2b705, 0.2) } }));
+item("shoes", "goldtops", "Gold high-tops", "🥇", 0xf2b705, ["royal", "party"], 2, () => footShoes(metal(0xf2b705, 0.22), 0xffffff, { thick: 0.012, soleH: 0.022, top: "high" }));
 
 /* ---------- Extras (multi-select) ---------- */
 item("acc", "headphones", "RGB headphones", "🎧", null, ["tech"], 1, () => {
@@ -1272,7 +1274,8 @@ const onHead = (it) => (it.parent ? it.parent === "head" : ["hat", "eyes", "make
 const boneFor = (it) => it.bone ?? ({ top: "chest", bottom: "hips", shoes: "hips", acc: "chest" })[it.cat] ?? "hips";
 function mount(id, pop = true) {
   const it = ITEMS[id];
-  const obj = it.build();
+  let obj;
+  try { obj = it.build(); } catch (err) { console.error("Could not build", id, err); return; }
   if (!obj) return;
   shadowAll(obj);
   obj.traverse((o) => { if (Object.keys(o.userData).length || o.material?.userData?.scroll) animated.push(o); });
