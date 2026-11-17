@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dress Up Carter</title>
+  <meta name="description" content="Style a 3D CarterPCs in bizarre outfits and get your fit rated">
+  <link rel="stylesheet" href="../../shared/base.css">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="layout">
+    <header class="topbar">
+      <a class="back" href="../../">&larr; All apps</a>
+      <h1>Dress Up Carter</h1>
+      <div class="drip" title="Live drip meter">
+        <span class="drip-label">Drip</span>
+        <div class="drip-bar"><div class="drip-fill" id="dripFill"></div></div>
+        <strong id="dripNum">0.0</strong>
+      </div>
+    </header>
+
+    <section class="stage" id="stage">
+      <div class="stage-tools">
+        <button id="viewBtn" title="Toggle face close-up">🔍 Face</button>
+        <button id="spinBtn" title="Toggle auto-spin">🔄 Spin</button>
+      </div>
+      <div class="loading" id="loading">Loading 3D…</div>
+    </section>
+
+    <aside class="panel">
+      <nav class="tabs" id="tabs" role="tablist"></nav>
+      <p class="hint muted" id="hint"></p>
+      <div class="items" id="items"></div>
+      <div class="actions">
+        <button id="randomBtn">🎲 Random</button>
+        <button id="resetBtn">↺ Reset</button>
+        <button id="rateBtn" class="primary">⭐ Rate my fit</button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="result card" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+      <p class="muted res-kicker">The judges have spoken</p>
+      <div class="res-score"><span id="resScore">0.0</span><small>/10</small></div>
+      <div class="stars" id="resStars"></div>
+      <h2 id="resTitle"></h2>
+      <blockquote id="resQuote"></blockquote>
+      <div class="breakdown" id="resBreakdown"></div>
+      <div class="combos" id="resCombos"></div>
+      <div class="res-actions">
+        <button id="closeRes" class="primary">Keep styling</button>
+      </div>
+    </div>
+  </div>
+  <canvas id="confetti" class="confetti"></canvas>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
