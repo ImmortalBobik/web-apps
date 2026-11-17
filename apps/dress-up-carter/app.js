@@ -278,6 +278,38 @@ const EYE_R = 0.0122;
 const smile = (x) => 6.5 * x * x; // soft, closed smile — corners lifted
 const F = { brow: 0.024, noseTip: -0.026, alae: -0.03, nostril: -0.033, lipU: -0.0505, lipLine: -0.057, lipL: -0.0635, crease: -0.074, chin: -0.09 };
 
+// Mouth modelled on the reference photos: a fairly thin upper lip with a clear Cupid's bow,
+// a fuller lower lip, lifted corners and a defined philtrum.
+const MOUTH_W = 0.025;
+function lipGeom(x) {
+  const t = Math.min(1, Math.abs(x) / MOUTH_W);
+  const line = F.lipLine + smile(x);
+  const bow = 0.0011 * Math.exp(-((Math.abs(x) - 0.0062) ** 2) / (2 * 0.0022 ** 2)) - 0.0007 * Math.exp(-(x * x) / (2 * 0.0025 ** 2));
+  const hU = 0.0062 * (1 - t * t) ** 0.6 + bow * (1 - t);
+  const hL = 0.0088 * (1 - t * t) ** 0.7;
+  return { line, top: line + hU, bot: line - hL, hU, hL, t };
+}
+function mouthShape(x, y) {
+  const L = lipGeom(x), ax = Math.abs(x);
+  let dz = 0;
+  const inW = sm(MOUTH_W + 0.003, MOUTH_W - 0.004, ax);
+  if (y >= L.line) {
+    const u = (y - L.line) / Math.max(L.hU, 1e-4);
+    dz += 0.0042 * Math.sin(Math.PI * Math.min(1, Math.max(0, u)) * 0.85) ** 0.8 * inW;     // upper lip body
+    dz += 0.0011 * Math.exp(-((y - L.top) ** 2) / (2 * 0.0007 ** 2)) * inW;                 // vermilion border ridge
+  } else {
+    const v = (L.line - y) / Math.max(L.hL, 1e-4);
+    dz += (0.0047 * Math.sin(Math.PI * Math.min(1, Math.max(0, v))) ** 0.6 + 0.0006) * inW * sm(1.25, 0.9, v); // fuller lower lip
+  }
+  dz -= 0.0022 * Math.exp(-((y - L.line) ** 2) / (2 * 0.0007 ** 2)) * sm(MOUTH_W + 0.002, MOUTH_W - 0.002, ax); // lips meet
+  dz -= 0.0022 * gauss(ax, y, MOUTH_W + 0.001, L.line + 0.001, 0.0028, 0.0028);               // smile corners
+  const band = sm(L.top + 0.0005, L.top + 0.003, y) * sm(F.nostril + 0.001, F.nostril - 0.003, y);
+  dz += 0.0012 * Math.exp(-((ax - 0.0045) ** 2) / (2 * 0.0016 ** 2)) * band;                   // philtrum ridges
+  dz += 0.0015 * gauss(x, y, 0, -0.044, 0.017, 0.008);                                       // upper-lip area
+  dz -= 0.0032 * gauss(x, y, 0, F.crease, 0.013, 0.0026);                                    // under-lip crease
+  return dz;
+}
+
 function shapeHead(d) {
   let x = d.x * HB.x, y = d.y * HB.y, z = d.z * HB.z;
   if (y < 0) y *= 0.93; // more compact lower face
@@ -303,11 +335,7 @@ function shapeHead(d) {
   dz += 0.0088 * gauss(x, y, 0, F.noseTip, 0.0095, 0.0085); // rounded nose tip
   dz += 0.0075 * gauss(ax, y, 0.0165, F.alae, 0.007, 0.006); // nostril wings (medium width)
   const ys = y - smile(x);
-  dz += 0.002 * gauss(x, y, 0, -0.044, 0.016, 0.009);        // philtrum area
-  dz += 0.006 * gauss(x, ys, 0, F.lipU, 0.0128, 0.0032);     // upper lip (full)
-  dz += 0.0072 * gauss(x, ys, 0, F.lipL, 0.012, 0.0044);     // lower lip (full)
-  dz -= 0.0045 * gauss(x, ys, 0, F.lipLine, 0.0155, 0.0011); // lip line
-  dz -= 0.0035 * gauss(x, y, 0, F.crease, 0.014, 0.0028);    // under-lip crease
+  dz += mouthShape(x, y);
   dz += 0.009 * gauss(x, y, 0, F.chin, 0.016, 0.011);        // defined chin
   z += dz * front;
   x += Math.sign(x) * (0.006 * gauss(ax, y, 0.058, -0.065, 0.012, 0.018) + 0.003 * gauss(ax, y, 0.05, -0.022, 0.012, 0.014)) * sm(-0.2, 0.3, d.z);
@@ -337,12 +365,12 @@ function headColor(p, d, out) {
   c.multiplyScalar(1 + 0.06 * front * gauss(p.x, p.y, 0, 0.05, 0.03, 0.02));                     // forehead sheen
   const ys = p.y - smile(p.x);
   // Cupid's bow: the upper lip's top edge dips in the middle
-  const bow = 0.0018 * Math.exp(-(p.x * p.x) / (2 * 0.004 ** 2)) - 0.001 * Math.exp(-((Math.abs(p.x) - 0.007) ** 2) / (2 * 0.003 ** 2));
-  const lipU = gauss(p.x, ys + bow * sm(F.lipLine, F.lipU + 0.004, p.y), 0, F.lipU, 0.0135, 0.0033);
-  const lipL = gauss(p.x, ys, 0, F.lipL, 0.0125, 0.0042);
-  c.lerp(new THREE.Color(0x7a4436), sm(0.5, 0.85, lipU) * front);
-  c.lerp(new THREE.Color(0x8e5246), sm(0.5, 0.85, lipL) * front);
-  c.lerp(new THREE.Color(0x2a120d), 0.75 * front * gauss(p.x, ys, 0, F.lipLine, 0.0135, 0.0008)); // mouth line
+  const L = lipGeom(p.x), edgeW = sm(MOUTH_W + 0.002, MOUTH_W - 0.003, Math.abs(p.x));
+  const inU = sm(L.top + 0.0008, L.top - 0.0006, p.y) * sm(L.line - 0.0003, L.line + 0.0004, p.y) * edgeW;
+  const inL = sm(L.bot - 0.0012, L.bot + 0.0006, p.y) * sm(L.line + 0.0003, L.line - 0.0004, p.y) * edgeW;
+  c.lerp(new THREE.Color(0x6a372b), inU * front);
+  c.lerp(new THREE.Color(0x804638), inL * front);
+  c.lerp(new THREE.Color(0x3a1a12), 0.65 * front * edgeW * Math.exp(-((p.y - L.line) ** 2) / (2 * 0.0006 ** 2))); // where the lips meet
   c.lerp(new THREE.Color(0x24130c), 0.75 * front * gauss(ax, p.y, 0.0085, F.nostril, 0.0035, 0.0022)); // nostrils
   // light moustache + chin stubble
   const stub = Math.max(gauss(p.x, p.y, 0, -0.041, 0.022, 0.0035) * (ax < 0.028 ? 1 : 0), gauss(p.x, p.y, 0, -0.092, 0.018, 0.012));
@@ -533,9 +561,40 @@ function buildHead() {
     }
   }
   head.add(strands);
+  head.add(facialHair());
   shadowAll(head);
   buildHair();
   head.add(hair);
+}
+
+// Thin moustache and light chin hair, as individual short strands.
+function facialHair() {
+  const N = 420, mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x0d0805, roughness: 0.9 }), N);
+  const r = rng(13), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), qz = new THREE.Quaternion();
+  let k = 0;
+  const strand = (x, y, ang, len) => {
+    const { p, n } = hitFace(x, y);
+    p.addScaledVector(n, 0.0006);
+    q.setFromUnitVectors(Zf, n);
+    qz.setFromAxisAngle(Zf, ang);
+    q.multiply(qz);
+    m4.compose(p, q, V(len, 0.00055, 0.00055));
+    mesh.setMatrixAt(k++, m4);
+  };
+  for (let i = 0; i < 240; i++) {                         // moustache: just above the upper lip
+    const x = (r() - 0.5) * 0.05;
+    const top = lipGeom(x).top;
+    const y = top + 0.0015 + r() * 0.006 * (1 - Math.abs(x) / 0.03);
+    if (r() > 0.7 - Math.abs(x) * 10) continue;          // sparser toward the corners
+    strand(x, y, -Math.PI / 2 + Math.sign(x) * (0.5 + r() * 0.4), 0.003 + r() * 0.002);
+  }
+  for (let i = 0; i < 200 && k < N; i++) {                // light chin hair
+    const x = (r() - 0.5) * 0.026, y = -0.08 - r() * 0.014;
+    if (r() > 0.7) continue;
+    strand(x, y, -Math.PI / 2 + (r() - 0.5) * 0.8, 0.0025 + r() * 0.0025);
+  }
+  mesh.count = k;
+  return mesh;
 }
 
 const hair = new THREE.Group();
