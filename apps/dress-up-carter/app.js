@@ -21,10 +21,10 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const camera = new THREE.PerspectiveCamera(32, 1, 0.02, 50);
-camera.position.set(0.9, 1.45, 3.6);
+camera.position.set(0.9, 1.3, 4.0);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 1.0, 0);
+controls.target.set(0, 0.95, 0);
 controls.enableDamping = true;
 controls.enablePan = false;
 controls.minDistance = 0.35;
@@ -32,7 +32,7 @@ controls.maxDistance = 6;
 controls.maxPolarAngle = Math.PI * 0.62;
 controls.autoRotateSpeed = 1.6;
 
-scene.add(new THREE.HemisphereLight(0xf2f4ff, 0x4a3b33, 0.25));
+scene.add(new THREE.HemisphereLight(0xf6f4ff, 0xb8a99a, 0.35));
 const key = new THREE.DirectionalLight(0xfff0e0, 2.6);
 key.position.set(1.8, 3.6, 3);
 key.castShadow = true;
@@ -45,20 +45,24 @@ scene.add(key);
 const rim = new THREE.DirectionalLight(0xa8c0ff, 1.6);
 rim.position.set(-2.5, 2.4, -2.5);
 scene.add(rim);
-const fill = new THREE.DirectionalLight(0xffd9c0, 0.5);
+const fill = new THREE.DirectionalLight(0xffd9c0, 0.6);
 fill.position.set(-2, 1.4, 2);
 scene.add(fill);
+// soft front "beauty" light so the face isn't lost in shadow under the brow
+const front = new THREE.DirectionalLight(0xfff4ec, 0.9);
+front.position.set(0.3, 1.2, 4);
+scene.add(front);
 
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(1.4, 64),
-  new THREE.MeshStandardMaterial({ color: 0x2b2d42, roughness: 0.85 })
+  new THREE.MeshStandardMaterial({ color: 0xe9e5f2, roughness: 0.9 })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 const ring = new THREE.Mesh(
   new THREE.RingGeometry(1.4, 1.46, 64),
-  new THREE.MeshStandardMaterial({ color: 0x7c96f2, emissive: 0x7c96f2, emissiveIntensity: 0.8 })
+  new THREE.MeshStandardMaterial({ color: 0x5c7cfa, emissive: 0x5c7cfa, emissiveIntensity: 0.25 })
 );
 ring.rotation.x = -Math.PI / 2;
 ring.position.y = 0.002;
@@ -260,18 +264,16 @@ const faceSkin = new THREE.MeshPhysicalMaterial({
 });
 
 const HEAD_Y = 1.705;
-const J = {};
-for (const s of [-1, 1]) {
-  const k = s < 0 ? "L" : "R";
-  J["shoulder" + k] = V(0.19 * s, 1.44, -0.005);
-  J["elbow" + k] = V(0.235 * s, 1.165, -0.03);
-  J["wrist" + k] = V(0.255 * s, 0.925, 0.0);
-  J["hand" + k] = V(0.26 * s, 0.86, 0.01);
-  J["hip" + k] = V(0.088 * s, 0.9, 0);
-  J["knee" + k] = V(0.092 * s, 0.5, 0.012);
-  J["ankle" + k] = V(0.09 * s, 0.085, -0.01);
-  J["foot" + k] = V(0.092 * s, 0.035, 0.035);
-}
+// Relaxed stance (contrapposto): weight on the left leg, right knee eased forward,
+// elbows softly bent, one shoulder a touch lower — mannequins stand perfectly symmetric, people don't.
+const J = {
+  shoulderL: V(-0.19, 1.442, -0.005), elbowL: V(-0.238, 1.17, -0.045), wristL: V(-0.25, 0.935, 0.03),
+  shoulderR: V(0.19, 1.435, -0.005), elbowR: V(0.234, 1.162, -0.035), wristR: V(0.256, 0.926, 0.038),
+  hipL: V(-0.088, 0.902, 0), kneeL: V(-0.09, 0.5, 0.008), ankleL: V(-0.092, 0.085, -0.012), footL: V(-0.094, 0.035, 0.033),
+  hipR: V(0.088, 0.892, 0), kneeR: V(0.098, 0.5, 0.05), ankleR: V(0.108, 0.088, 0.01), footR: V(0.112, 0.035, 0.055),
+};
+J.handL = J.wristL.clone().add(V(0, -0.065, 0.01));
+J.handR = J.wristR.clone().add(V(0, -0.065, 0.01));
 const RAD = {
   upper: [0.046, 0.049, 0.046, 0.04, 0.036],
   fore: [0.037, 0.041, 0.038, 0.031, 0.026],
@@ -283,8 +285,8 @@ const RAD = {
 // Torso cross-sections: [y, half-width, half-depth, chest-forward bulge]
 const TK = [
   [0.82, 0.15, 0.095, 0], [0.9, 0.163, 0.103, 0], [0.98, 0.155, 0.1, 0.004], [1.06, 0.138, 0.094, 0.006],
-  [1.14, 0.142, 0.098, 0.01], [1.24, 0.153, 0.104, 0.016], [1.32, 0.162, 0.108, 0.02], [1.4, 0.164, 0.102, 0.014],
-  [1.46, 0.158, 0.084, 0.004], [1.505, 0.122, 0.066, 0], [1.54, 0.075, 0.056, 0], [1.58, 0.058, 0.05, 0],
+  [1.14, 0.142, 0.098, 0.01], [1.24, 0.153, 0.104, 0.016], [1.32, 0.164, 0.108, 0.02], [1.4, 0.174, 0.102, 0.014],
+  [1.455, 0.17, 0.084, 0.004], [1.5, 0.13, 0.066, 0], [1.54, 0.075, 0.056, 0], [1.58, 0.058, 0.05, 0],
 ];
 function profile(y) {
   let i = 0;
@@ -338,16 +340,20 @@ function torsoGeo(y0, y1, ex = 0, rows = 48, segs = 48) {
 
 /* ---------- Sculpted head ---------- */
 const HB = { x: 0.075, y: 0.108, z: 0.098 }; // base head radii
-const EYE = { x: 0.032, y: 0.022 };
+// Proportions follow the classic rules: eyes on the vertical midline of the head,
+// face split into thirds (hairline → brow → nose base → chin), mouth a third of the way to the chin.
+const EYE = { x: 0.032, y: 0.003 };
 const EYE_R = 0.0122;
-const smile = (x) => 5 * x * x;
+const smile = (x) => 4 * x * x;
+const F = { brow: 0.024, noseTip: -0.026, alae: -0.03, nostril: -0.033, lipU: -0.0505, lipLine: -0.057, lipL: -0.0635, crease: -0.074, chin: -0.09 };
 
 function shapeHead(d) {
   let x = d.x * HB.x, y = d.y * HB.y, z = d.z * HB.z;
   if (d.z > 0) {
-    // a real face is close to a vertical plane: forehead, nose, lips and chin stack up
+    // a real face is close to a vertical plane; the lower face sits slightly behind the brow
     const yn = y / HB.y, flat = HB.z * (1 - Math.sqrt(Math.max(0, 1 - yn * yn)));
-    z += flat * 0.72 * sm(0.0, 0.55, d.z) * sm(0.105, 0.055, y) * sm(-0.106, -0.072, y);
+    const w = sm(0.105, 0.055, y) * (1 - 0.22 * sm(0.0, -0.09, y)) * sm(-0.108, -0.07, y);
+    z += flat * 0.75 * sm(0.0, 0.55, d.z) * w;
   }
   if (z < 0) z *= 1 + 0.12 * sm(-0.03, 0.05, y);          // occipital bulge
   const low = sm(0.0, -0.1, y);
@@ -356,29 +362,30 @@ function shapeHead(d) {
   const front = sm(0.1, 0.6, d.z);
   const ax = Math.abs(x);
   let dz = 0;
-  dz += 0.006 * gauss(ax, y, 0.028, 0.043, 0.022, 0.008);   // brow ridge
+  dz += 0.006 * gauss(ax, y, 0.028, F.brow, 0.022, 0.008);  // brow ridge
   dz -= 0.012 * gauss(ax, y, EYE.x, EYE.y, 0.013, 0.009);   // eye sockets
-  dz += 0.005 * gauss(ax, y, 0.047, -0.006, 0.014, 0.014);  // cheekbones
-  const bridge = sm(0.032, -0.03, y) * (y > -0.042 ? 1 : 0);
-  dz += (0.003 + 0.007 * sm(0.03, -0.028, y)) * Math.exp(-(x * x) / (2 * 0.0075 ** 2)) * bridge; // nose bridge
-  dz += 0.0095 * gauss(x, y, 0, -0.03, 0.0115, 0.0095);     // broad nose tip
-  dz += 0.0085 * gauss(ax, y, 0.0185, -0.034, 0.0075, 0.0065); // nostril wings
+  dz += 0.0055 * gauss(ax, y, 0.046, -0.022, 0.014, 0.014); // cheekbones
+  dz -= 0.0015 * gauss(ax, y, 0.042, -0.05, 0.012, 0.015);  // soft cheek hollow beside the mouth
+  const bridge = sm(0.016, -0.022, y) * sm(-0.04, -0.03, y);
+  dz += (0.0025 + 0.0065 * sm(0.014, -0.022, y)) * Math.exp(-(x * x) / (2 * 0.0072 ** 2)) * bridge; // nose bridge
+  dz += 0.009 * gauss(x, y, 0, F.noseTip, 0.0115, 0.0085);  // broad nose tip
+  dz += 0.008 * gauss(ax, y, 0.0185, F.alae, 0.0075, 0.006); // nostril wings
   const ys = y - smile(x);
-  dz += 0.0025 * gauss(x, y, 0, -0.05, 0.02, 0.011);         // upper-lip area
-  dz += 0.0055 * gauss(x, ys, 0, -0.0555, 0.0128, 0.0032);   // upper lip
-  dz += 0.0065 * gauss(x, ys, 0, -0.0668, 0.0118, 0.0042);   // lower lip
-  dz -= 0.0045 * gauss(x, ys, 0, -0.0608, 0.0155, 0.0011);   // lip line
-  dz -= 0.0035 * gauss(x, y, 0, -0.0765, 0.014, 0.0028);     // under-lip crease
-  dz += 0.009 * gauss(x, y, 0, -0.09, 0.016, 0.011);         // chin
+  dz += 0.002 * gauss(x, y, 0, -0.044, 0.016, 0.009);        // philtrum area
+  dz += 0.005 * gauss(x, ys, 0, F.lipU, 0.0128, 0.003);      // upper lip
+  dz += 0.0058 * gauss(x, ys, 0, F.lipL, 0.0118, 0.004);     // lower lip
+  dz -= 0.0045 * gauss(x, ys, 0, F.lipLine, 0.0155, 0.0011); // lip line
+  dz -= 0.0035 * gauss(x, y, 0, F.crease, 0.014, 0.0028);    // under-lip crease
+  dz += 0.01 * gauss(x, y, 0, F.chin, 0.018, 0.011);         // chin
   z += dz * front;
-  x += Math.sign(x) * (0.006 * gauss(ax, y, 0.058, -0.062, 0.012, 0.018) + 0.003 * gauss(ax, y, 0.05, -0.005, 0.012, 0.014)) * sm(-0.2, 0.3, d.z);
+  x += Math.sign(x) * (0.006 * gauss(ax, y, 0.058, -0.065, 0.012, 0.018) + 0.003 * gauss(ax, y, 0.05, -0.022, 0.012, 0.014)) * sm(-0.2, 0.3, d.z);
   return V(x, y, z);
 }
 
 function hairline(d) {
   const fz = d.z / (Math.hypot(d.x, d.z) + 1e-6);
   const wobble = 0.0025 * Math.sin(d.x * 60) + 0.0015 * Math.sin(d.x * 140 + 1);
-  return 0.014 + 0.048 * sm(0.35, 0.92, fz) + 0.009 * Math.exp(-((fz - 0.78) ** 2) / 0.006)
+  return 0.012 + 0.06 * sm(0.35, 0.92, fz) + 0.009 * Math.exp(-((fz - 0.78) ** 2) / 0.006)
     - 0.075 * sm(0.0, 0.85, -fz) - 0.022 * Math.exp(-((fz - 0.45) ** 2) / 0.02) + wobble * sm(0.5, 0.9, fz);
 }
 function hairThick(d, p) {
@@ -393,18 +400,21 @@ const hairNormal = (p) => V(p.x / HB.x ** 2, p.y / HB.y ** 2, p.z / HB.z ** 2).n
 function headColor(p, d, out) {
   const ax = Math.abs(p.x), front = sm(0.2, 0.6, d.z);
   const c = SKIN.clone();
-  c.lerp(new THREE.Color(0x9a5a3f), 0.18 * front * (gauss(ax, p.y, 0.045, -0.015, 0.02, 0.02) + gauss(p.x, p.y, 0, -0.03, 0.012, 0.01)));
+  c.lerp(new THREE.Color(0x9a5a3f), 0.18 * front * (gauss(ax, p.y, 0.045, -0.028, 0.02, 0.02) + gauss(p.x, p.y, 0, F.noseTip, 0.012, 0.01)));
   c.multiplyScalar(1 - 0.16 * front * gauss(ax, p.y, EYE.x, EYE.y - 0.006, 0.016, 0.009));     // under-eye shadow
-  c.multiplyScalar(1 + 0.06 * front * gauss(p.x, p.y, 0, 0.06, 0.03, 0.02));                     // forehead sheen
+  c.multiplyScalar(1 + 0.06 * front * gauss(p.x, p.y, 0, 0.05, 0.03, 0.02));                     // forehead sheen
   const ys = p.y - smile(p.x);
-  const lipU = gauss(p.x, ys, 0, -0.0555, 0.0145, 0.0042), lipL = gauss(p.x, ys, 0, -0.0665, 0.0135, 0.0052);
-  c.lerp(new THREE.Color(0x4f251d), sm(0.35, 0.7, lipU) * front);
-  c.lerp(new THREE.Color(0x6a3528), sm(0.35, 0.7, lipL) * front);
-  c.lerp(new THREE.Color(0x2a120d), 0.8 * front * gauss(p.x, ys, 0, -0.0608, 0.0145, 0.0009)); // mouth line
-  c.lerp(new THREE.Color(0x24130c), 0.75 * front * gauss(ax, p.y, 0.0085, -0.0385, 0.0035, 0.0022));   // nostrils
+  // Cupid's bow: the upper lip's top edge dips in the middle
+  const bow = 0.0018 * Math.exp(-(p.x * p.x) / (2 * 0.004 ** 2)) - 0.001 * Math.exp(-((Math.abs(p.x) - 0.007) ** 2) / (2 * 0.003 ** 2));
+  const lipU = gauss(p.x, ys + bow * sm(F.lipLine, F.lipU + 0.004, p.y), 0, F.lipU, 0.0135, 0.0033);
+  const lipL = gauss(p.x, ys, 0, F.lipL, 0.0125, 0.0042);
+  c.lerp(new THREE.Color(0x5a3126), sm(0.5, 0.85, lipU) * front);
+  c.lerp(new THREE.Color(0x744236), sm(0.5, 0.85, lipL) * front);
+  c.lerp(new THREE.Color(0x2a120d), 0.75 * front * gauss(p.x, ys, 0, F.lipLine, 0.0135, 0.0008)); // mouth line
+  c.lerp(new THREE.Color(0x24130c), 0.75 * front * gauss(ax, p.y, 0.0085, F.nostril, 0.0035, 0.0022)); // nostrils
   // light moustache + chin stubble
-  const stub = Math.max(gauss(p.x, p.y, 0, -0.046, 0.024, 0.004) * (ax < 0.03 ? 1 : 0), gauss(p.x, p.y, 0, -0.092, 0.018, 0.012));
-  c.lerp(new THREE.Color(0x2e1b12), 0.35 * stub * front);
+  const stub = Math.max(gauss(p.x, p.y, 0, -0.041, 0.022, 0.0035) * (ax < 0.028 ? 1 : 0), gauss(p.x, p.y, 0, -0.092, 0.018, 0.012));
+  c.lerp(new THREE.Color(0x2e1b12), 0.18 * stub * front);
   // dark scalp under the hair, soft at the hairline
   c.lerp(new THREE.Color(0x1d120c), 0.85 * sm(-0.006, 0.008, p.y - hairline(d)));
   c.multiplyScalar(0.97 + hash3(p.x * 900, p.y * 900, p.z * 900) * 0.06);
@@ -523,7 +533,7 @@ function buildBody() {
   body.add(...mirror((s) => { const c = taperLimb(V(s * 0.02, 1.515, 0.06), V(s * 0.15, 1.475, 0.035), [0.008, 0.009, 0.008], skin); return c; }));
   for (const k of ["L", "R"]) {
     const s = k === "L" ? -1 : 1;
-    const delt = ell(0.05, 0.058, 0.052, skin, J["shoulder" + k].clone().add(V(s * 0.006, -0.014, 0)));
+    const delt = ell(0.045, 0.052, 0.048, skin, J["shoulder" + k].clone().add(V(0, -0.016, 0)));
     delt.rotation.z = s * 0.35;
     body.add(delt);
     body.add(taperLimb(J["shoulder" + k], J["elbow" + k], RAD.upper, skin));
@@ -549,7 +559,7 @@ function buildEar(s) {
   g.add(helix);
   g.add(ell(0.0055, 0.008, 0.007, em, V(0.002, -0.024, 0.002)));            // lobe
   g.add(ell(0.003, 0.011, 0.007, new THREE.MeshStandardMaterial({ color: SKIN.clone().multiplyScalar(0.55), roughness: 0.7 }), V(0.0065, -0.002, 0.002))); // concha
-  g.position.set(s * 0.071, 0.0, -0.014);
+  g.position.set(s * 0.071, -0.008, -0.014);
   g.rotation.y = s * 0.25;
   g.scale.x = s;
   return g;
@@ -560,7 +570,7 @@ function buildHead() {
   head.add(face);
   head.add(buildEar(-1), buildEar(1));
   // stud earring
-  head.add(new THREE.Mesh(new THREE.SphereGeometry(0.0035, 14, 10), metal(0xf1f3f5, 0.08)).translateX(-0.081).translateY(-0.023).translateZ(-0.008));
+  head.add(new THREE.Mesh(new THREE.SphereGeometry(0.0035, 14, 10), metal(0xf1f3f5, 0.08)).translateX(-0.079).translateY(-0.031).translateZ(-0.01));
 
   // Eyelids + lash line (they blink)
   const lidSkin = new THREE.MeshPhysicalMaterial({ color: SKIN.clone().multiplyScalar(0.88), roughness: 0.5, sheen: 0.4, sheenColor: new THREE.Color(0xc0705a), side: THREE.DoubleSide });
@@ -612,7 +622,7 @@ function buildHead() {
     for (let i = 0; i < 110; i++) {
       const t = r();
       const x = 0.011 + t * 0.042;
-      const yc = 0.039 + 0.0065 * Math.sin(Math.PI * Math.min(1, t * 1.25)) - 0.003 * t;
+      const yc = F.brow - 0.004 + 0.0065 * Math.sin(Math.PI * Math.min(1, t * 1.25)) - 0.003 * t;
       const spread = 0.0042 * (1 - t) + 0.0018;
       const y = yc + (r() - 0.5) * spread;
       const { p, n } = hitFace(s * x, y);
@@ -692,7 +702,7 @@ function sleeves(m, len = "long", ex = 0.012) {
   for (const k of ["L", "R"]) {
     const s = k === "L" ? -1 : 1;
     const sh = J["shoulder" + k], el = J["elbow" + k], wr = J["wrist" + k];
-    const delt = ell(0.05 + ex * 0.7, 0.058 + ex * 0.7, 0.052 + ex * 0.7, m, sh.clone().add(V(s * 0.006, -0.014, 0)));
+    const delt = ell(0.045 + ex * 0.6, 0.052 + ex * 0.6, 0.048 + ex * 0.6, m, sh.clone().add(V(0, -0.016, 0)));
     delt.rotation.z = s * 0.35;
     out.push(delt);
     if (len === "short") out.push(taperLimb(sh, sh.clone().lerp(el, 0.5), RAD.upper.slice(0, 3), m, ex));
@@ -716,6 +726,7 @@ function pants(m, len = "long", ex = 0.012) {
     const hp = J["hip" + k], kn = J["knee" + k], an = J["ankle" + k];
     if (len === "shorts") out.push(taperLimb(hp, hp.clone().lerp(kn, 0.8), RAD.thigh.slice(0, 4), m, ex + 0.008));
     else {
+      out.push(ell(0.05 + ex, 0.055 + ex, 0.05 + ex, m, kn.clone().add(V(0, 0, 0.004))));
       out.push(taperLimb(hp, kn, RAD.thigh, m, ex));
       out.push(taperLimb(kn, an.clone().add(V(0, 0.025, 0)), RAD.shin.map((r) => Math.max(r, 0.04)), m, ex));
     }
@@ -803,13 +814,13 @@ function boltShape() {
  * ------------------------------------------------------------------ */
 const HAT_K = 0.8;
 const CATS = [
-  { id: "hat", label: "🎩 Hats", hint: "Anything on top of those curls." },
-  { id: "eyes", label: "👀 Eyes", hint: "Swap his eyes for something stranger." },
-  { id: "makeup", label: "💄 Makeup", hint: "Face paint, glitter and worse." },
-  { id: "top", label: "👕 Tops", hint: "Shirts, jackets and full-on costumes." },
-  { id: "bottom", label: "👖 Bottoms", hint: "Pants, shorts, skirts." },
-  { id: "shoes", label: "👟 Shoes", hint: "From sneakers to clown shoes." },
-  { id: "acc", label: "🕶️ Extras", hint: "Stack up to 3 extras." },
+  { id: "hat", emo: "🎩", label: "Hats", hint: "Anything on top of those curls." },
+  { id: "eyes", emo: "👀", label: "Eyes", hint: "Swap his eyes for something stranger." },
+  { id: "makeup", emo: "💄", label: "Makeup", hint: "Face paint, glitter and worse." },
+  { id: "top", emo: "👕", label: "Tops", hint: "Shirts, jackets and full-on costumes." },
+  { id: "bottom", emo: "👖", label: "Bottoms", hint: "Pants, shorts and one kilt." },
+  { id: "shoes", emo: "👟", label: "Shoes", hint: "From sneakers to clown shoes." },
+  { id: "acc", emo: "🕶️", label: "Extras", hint: "Stack up to 3 extras — tap again to remove." },
 ];
 const MAX_ACC = 3;
 const ITEMS = {};
@@ -1004,14 +1015,14 @@ item("eyes", "eyes-googly", "Googly eyes", "🤪", null, ["circus", "chaos"], 3,
 item("makeup", "no-makeup", "Clean face", "🚫", null, [], 0, () => null);
 item("makeup", "blush", "Rosy blush", "🌸", null, ["cute", "party"], 1, () => {
   const m = new THREE.MeshBasicMaterial({ color: 0xff5a7a, transparent: true, opacity: 0.32, depthWrite: false });
-  return group(mirror((s) => decal(new THREE.CircleGeometry(0.014, 24), s * 0.046, -0.018, m, 0.0012)));
+  return group(mirror((s) => decal(new THREE.CircleGeometry(0.014, 24), s * 0.046, -0.03, m, 0.0012)));
 });
 item("makeup", "freckles", "Freckles", "🟤", null, ["nature", "cute"], 1, () => {
   const m = new THREE.MeshStandardMaterial({ color: 0x3d2216, roughness: 0.6 });
   const r = rng(99), g = new THREE.Group();
   for (let i = 0; i < 46; i++) {
-    const x = (r() - 0.5) * 0.11, y = -0.03 + r() * 0.03;
-    if (Math.abs(x) < 0.012 && y < -0.022) continue;
+    const x = (r() - 0.5) * 0.11, y = -0.042 + r() * 0.03;
+    if (Math.abs(x) < 0.012 && y < -0.02) continue;
     g.add(decal(new THREE.CircleGeometry(0.0013 + r() * 0.0009, 8), x, y, m, 0.0008));
   }
   return g;
@@ -1030,7 +1041,7 @@ item("makeup", "eyeliner", "Dramatic wings", "🖋️", null, ["goth", "party"],
 item("makeup", "glitter", "Glitter stars", "✨", null, ["party", "space"], 2, () => {
   const geo = new THREE.ShapeGeometry(starShape());
   const cols = [0xffd43b, 0xff8cc6, 0x74c0fc, 0xffffff];
-  const spots = [[0.05, -0.006, 0.008], [0.058, -0.024, 0.0055], [0.042, -0.032, 0.004], [-0.05, -0.01, 0.007], [-0.045, 0.058, 0.005], [0.024, 0.07, 0.0045], [-0.06, -0.028, 0.005]];
+  const spots = [[0.05, -0.02, 0.008], [0.058, -0.037, 0.0055], [0.042, -0.044, 0.004], [-0.05, -0.024, 0.007], [-0.045, 0.045, 0.005], [0.024, 0.058, 0.0045], [-0.06, -0.04, 0.005]];
   return group(spots.map(([x, y, s], i) => {
     const m = decal(geo, x, y, glow(cols[i % 4], 1.4), 0.0012, i);
     m.scale.setScalar(s);
@@ -1046,7 +1057,7 @@ item("makeup", "bolt", "Lightning bolt", "⚡", null, ["party", "chaos"], 2, () 
 });
 item("makeup", "clown", "Clown face", "🤡", null, ["circus"], 3, () => {
   const nose = new THREE.Mesh(new THREE.SphereGeometry(0.017, 20, 14), new THREE.MeshPhysicalMaterial({ color: 0xe00000, roughness: 0.15, clearcoat: 1 }));
-  nose.position.copy(surf(0, -0.03, 0.006));
+  nose.position.copy(surf(0, F.noseTip, 0.006));
   const dia = new THREE.Shape(); dia.moveTo(0, 1); dia.lineTo(0.5, 0); dia.lineTo(0, -1); dia.lineTo(-0.5, 0);
   const blue = mat(0x1c7ed6, { roughness: 0.4, sheen: 0 });
   const marks = [];
@@ -1057,13 +1068,13 @@ item("makeup", "clown", "Clown face", "🤡", null, ["circus"], 3, () => {
       marks.push(d);
     }
   }
-  const mouth = decal(new THREE.CircleGeometry(1, 32), 0, -0.061, mat(0xe00000, { sheen: 0 }), 0.0035);
+  const mouth = decal(new THREE.CircleGeometry(1, 32), 0, F.lipLine, mat(0xe00000, { sheen: 0 }), 0.0035);
   mouth.scale.set(0.03, 0.012, 1);
   return group(nose, marks, mouth);
 });
 item("makeup", "goldmask", "Gold mask", "🎭", null, ["royal", "party"], 3, () => {
   const m = headPatch(
-    (p) => p.z > 0.035 && p.y > -0.006 && p.y < 0.05 && EYE_C.every((c) => Math.hypot(p.x - c.x, (p.y - c.y) * 1.3) > 0.0135),
+    (p) => p.z > 0.035 && p.y > -0.022 && p.y < 0.035 && EYE_C.every((c) => Math.hypot(p.x - c.x, (p.y - c.y) * 1.3) > 0.0135),
     () => 0.0016,
     metal(0xf2b705, 0.2)
   );
@@ -1073,9 +1084,9 @@ item("makeup", "goldmask", "Gold mask", "🎭", null, ["royal", "party"], 3, () 
 item("makeup", "circuit", "Circuit glow", "🔌", null, ["tech"], 3, () => {
   const m = glow(0x22e5ff, 2.4);
   const lines = [
-    [[0.036, -0.012], [0.06, -0.012]], [[0.06, -0.012], [0.066, -0.036]], [[0.036, -0.012], [0.033, -0.032]],
-    [[-0.036, -0.016], [-0.062, -0.016]], [[-0.062, -0.016], [-0.058, -0.04]],
-    [[-0.026, 0.066], [0.02, 0.066]], [[0.02, 0.066], [0.034, 0.055]], [[-0.026, 0.066], [-0.036, 0.078]],
+    [[0.036, -0.026], [0.06, -0.026]], [[0.06, -0.026], [0.066, -0.05]], [[0.036, -0.026], [0.033, -0.046]],
+    [[-0.036, -0.03], [-0.062, -0.03]], [[-0.062, -0.03], [-0.058, -0.054]],
+    [[-0.026, 0.052], [0.02, 0.052]], [[0.02, 0.052], [0.034, 0.041]], [[-0.026, 0.052], [-0.036, 0.064]],
   ];
   const g = new THREE.Group();
   for (const [[x1, y1], [x2, y2]] of lines) {
@@ -1186,7 +1197,10 @@ item("top", "flannel", "Flannel shirt", "🪵", 0xc92a2a, ["western", "street"],
 /* ---------- Bottoms ---------- */
 item("bottom", "joggers", "Grey joggers", "🩶", 0x868e96, ["street", "cozy"], 0, () => {
   const m = mat(0x868e96, { roughness: 0.95 });
-  const cuffs = mirror((s) => cyl(0.05, 0.05, 0.04, mat(0x495057), V(0.09 * s, 0.13, -0.008)));
+  const cuffs = mirror((s) => {
+    const k = s < 0 ? "L" : "R", a = J["ankle" + k], kn = J["knee" + k];
+    return taperLimb(a.clone().lerp(kn, 0.06), a.clone().lerp(kn, 0.13), [0.05, 0.05], mat(0x495057), 0.004);
+  });
   return group(pants(m, "long", 0.016), cuffs);
 });
 item("bottom", "jeans", "Blue jeans", "👖", 0x2f4b8f, ["street", "western"], 0, () => {
@@ -1207,7 +1221,7 @@ item("bottom", "cargo", "Camo cargo shorts", "🩳", 0x5c7a3a, ["street", "natur
 });
 item("bottom", "spacepants", "Space pants", "🛰️", 0xdfe3ea, ["space"], 1, () => {
   const m = metal(0xdfe3ea, 0.45);
-  const pads = mirror((s) => ell(0.048, 0.05, 0.03, mat(0x343a40), V(0.092 * s, 0.51, 0.075)));
+  const pads = mirror((s) => ell(0.048, 0.05, 0.03, mat(0x343a40), J[s < 0 ? "kneeL" : "kneeR"].clone().add(V(0, 0.01, 0.068))));
   return group(pants(m, "long", 0.022), pads);
 });
 item("bottom", "leggings", "Neon leggings", "💚", 0x94d82d, ["party", "chaos"], 2, () => {
@@ -1218,7 +1232,10 @@ item("bottom", "kilt", "Tartan kilt", "🏴", 0x2b5c3a, ["royal", "fantasy"], 2,
   const t = TEX.plaid("#1d4d2b", "#1b2a5c", "#e03131", [4, 1]);
   const skirt = cyl(0.175, 0.26, 0.34, mat(0xffffff, { map: t, side: THREE.DoubleSide }), V(0, 0.79, 0), 40, true);
   skirt.scale.z = 0.72;
-  const socks = mirror((s) => taperLimb(V(0.091 * s, 0.4, 0.01), V(0.09 * s, 0.1, -0.01), [0.053, 0.05, 0.04, 0.034], mat(0xf1f3f5, { roughness: 1 }), 0.005));
+  const socks = mirror((s) => {
+    const k = s < 0 ? "L" : "R";
+    return taperLimb(J["knee" + k].clone().lerp(J["ankle" + k], 0.22), J["ankle" + k], [0.053, 0.05, 0.04, 0.034], mat(0xf1f3f5, { roughness: 1 }), 0.005);
+  });
   const sporran = ell(0.04, 0.05, 0.02, mat(0x5c3d1e), V(0, 0.8, 0.13));
   return group(skirt, new THREE.Mesh(torsoGeo(0.86, 1.02, 0.014, 12, 40), mat(0xffffff, { map: t })), socks, sporran);
 });
@@ -1400,7 +1417,14 @@ function applyHair() {
   if (ITEMS[state.hat].hair) hair.scale.set(0.96, 0.7, 0.96);
   else hair.scale.set(1, 1, 1);
 }
+const history = [];
+function snapshot() {
+  history.push(structuredClone(state));
+  if (history.length > 60) history.shift();
+}
 function equip(cat, id, pop = true) {
+  if (cat !== "acc" && state[cat] === id) return;
+  snapshot();
   if (cat === "acc") {
     const i = state.acc.indexOf(id);
     if (i >= 0) { state.acc.splice(i, 1); unmount(id); }
@@ -1410,23 +1434,25 @@ function equip(cat, id, pop = true) {
       mount(id, pop);
     }
   } else {
-    if (state[cat] === id) return;
     unmount(state[cat]);
     state[cat] = id;
     mount(id, pop);
   }
   applyHair();
-  renderItems();
-  updateDrip();
+  refreshUI();
 }
-function loadState(next) {
+function loadState(next, record = true) {
+  if (record) snapshot();
   for (const id of Object.keys(mounted)) unmount(id);
   Object.assign(state, structuredClone(next));
   for (const c of CATS) (c.id === "acc" ? state.acc : [state[c.id]]).forEach((id) => mount(id, false));
   bounce = 1;
   applyHair();
-  renderItems();
-  updateDrip();
+  refreshUI();
+}
+function undo() {
+  const prev = history.pop();
+  if (prev) loadState(prev, false);
 }
 
 /* ------------------------------------------------------------------ *
@@ -1450,75 +1476,83 @@ function equipped() {
 }
 function hsl(hex) { const o = {}; new THREE.Color(hex).getHSL(o); return o; }
 
+// Strict judging: cohesion is king, risk only pays off when the look is coherent,
+// clashing themes cost points, and combos are a small bonus rather than a free pass.
 function rate() {
   const items = equipped();
   const ids = new Set(items.map((i) => i.id));
   const changed = CATS.filter((c) => (c.id === "acc" ? state.acc.length > 0 : state[c.id] !== DEFAULTS[c.id])).length;
-  const effort = (changed / CATS.length) * 1.5;
+  const effort = (changed / CATS.length) * 1;
 
   const styled = items.filter((i) => i.style.length);
   const counts = {};
   styled.forEach((i) => i.style.forEach((s) => (counts[s] = (counts[s] || 0) + 1)));
   const [topStyle, topCount] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || ["none", 0];
   const share = styled.length ? topCount / styled.length : 0;
-  const cohesion = 3 * share * Math.min(1, styled.length / 5);
+  const cohesion = 3.5 * share ** 1.6 * Math.min(1, styled.length / 4);
+  const clash = styled.length >= 4 && share < 0.45 ? 1 : 0;
 
-  const colors = [state.hat, state.top, state.bottom, state.shoes].map((id) => ITEMS[id].color).filter((c) => c != null);
-  const sat = colors.map(hsl).filter((c) => c.s > 0.3 && c.l > 0.15 && c.l < 0.85);
+  const garments = [state.hat, state.top, state.bottom, state.shoes].map((id) => ITEMS[id].color).filter((c) => c != null);
+  const sat = garments.map(hsl).filter((c) => c.s > 0.3 && c.l > 0.15 && c.l < 0.85);
   let color;
-  if (sat.length === 0) color = 1.5;
-  else if (sat.length === 1) color = 2.1;
+  if (sat.length === 0) color = garments.length >= 3 ? 1.8 : 1.2;   // tonal / monochrome
+  else if (sat.length === 1) color = 2.0;                           // one accent colour
   else {
     let sum = 0, n = 0;
     for (let a = 0; a < sat.length; a++) for (let b = a + 1; b < sat.length; b++) {
       let d = Math.abs(sat[a].h - sat[b].h) * 360; d = Math.min(d, 360 - d);
-      sum += d < 35 ? 1 : d > 140 && d < 220 ? 1 : d > 100 ? 0.2 : -0.5;
+      sum += d < 40 ? 1 : d > 150 && d < 210 ? 0.9 : d > 110 ? 0.1 : -0.7;
       n++;
     }
-    color = 1.0 + (sum / n) * 1.5;
-    if (sat.length >= 4) color -= 0.4;
+    color = 0.8 + (sum / n) * 1.7;
+    if (sat.length >= 4) color -= 0.6;
+    if (share >= 0.75) color = Math.max(color, 1.3); // a committed theme's palette is intentional
   }
   color = Math.max(0, Math.min(2.5, color));
 
   const boldSum = items.reduce((t, i) => t + i.bold, 0);
-  const bold = Math.min(2.5, (boldSum / 11) * 2.5);
+  const risk = 1.5 * Math.min(1, boldSum / 12) * sm(0.4, 0.75, share);
 
   const combos = COMBOS.filter((c) => c.need.filter((id) => ids.has(id)).length >= c.min).map((c) => c.name);
-  if (boldSum >= 16) combos.push("🌪️ Absolute chaos");
+  const comboPts = Math.min(3, combos.length) * 0.5;
 
-  const score = Math.max(0, Math.min(10, 0.5 + effort + cohesion + color + bold + combos.length * 0.75));
+  const score = Math.max(0, Math.min(10, effort + cohesion + color + risk + comboPts - clash));
   return {
     score: Math.round(score * 10) / 10,
     parts: [
-      { key: "effort", label: "Effort", v: effort, max: 1.5 },
-      { key: "cohesion", label: "Style cohesion", v: cohesion, max: 3 },
+      { key: "cohesion", label: "Style cohesion", v: cohesion, max: 3.5 },
       { key: "color", label: "Color harmony", v: color, max: 2.5 },
-      { key: "bold", label: "Boldness", v: bold, max: 2.5 },
+      { key: "risk", label: "Risk that works", v: risk, max: 1.5 },
+      { key: "combos", label: "Theme combos", v: comboPts, max: 1.5 },
+      { key: "effort", label: "Effort", v: effort, max: 1 },
     ],
-    combos, topStyle, boldSum,
+    combos, clash, topStyle, share, boldSum,
   };
 }
 
 const TIERS = [
-  [9, "Runway legend", ["Carter would post this four times a day.", "This fit has more cores than his PC builds.", "Vogue just called. They want the full build log."]],
-  [7.5, "Certified drip", ["Clean. Like a fresh Windows install.", "That's a top-tier spec sheet right there.", "Overclocked and stable. Respect."]],
-  [6, "Drip detected", ["Solid mid-range build. Good value.", "It runs, and it runs pretty well.", "Strong fundamentals, needs one more upgrade."]],
-  [4, "Mid", ["Very mid. Like stock cooling.", "It boots… barely.", "Default settings energy."]],
+  [9.2, "Runway legend", ["Carter would post this four times a day.", "This fit has more cores than his PC builds.", "Vogue just called. They want the full build log."]],
+  [8, "Certified drip", ["Clean. Like a fresh Windows install.", "That's a top-tier spec sheet right there.", "Overclocked and stable. Respect."]],
+  [6.5, "Drip detected", ["Solid mid-range build. Good value.", "It runs, and it runs pretty well.", "Strong fundamentals, needs one more upgrade."]],
+  [5, "Decent", ["Respectable. Not thumbnail-worthy yet.", "Passes the benchmark, doesn't top it.", "Fine. Just fine."]],
+  [3.5, "Basic", ["Stock settings. Very stock.", "It boots… barely.", "Default fit energy."]],
   [0, "Fashion emergency", ["Blue screen of fashion.", "Did a GPU pick this outfit in the dark?", "Call tech support. Immediately."]],
 ];
+const tierOf = (s) => TIERS.find(([min]) => s >= min);
 const ADVICE = {
-  effort: "Try changing more slots — the wardrobe is huge.",
-  cohesion: "Pick a lane: the pieces are telling different stories.",
-  color: "The colors are fighting each other. Try matching tones or true opposites.",
-  bold: "Too safe. Go weirder — the judges love a risk.",
+  effort: "Change more slots — the wardrobe is huge.",
+  cohesion: "Pick one theme and commit to it across hat, top, bottoms and shoes.",
+  color: "The colors are fighting. Try one accent color, matching tones, or true opposites.",
+  risk: "Too safe — add a bold piece that fits your theme.",
+  combos: "Complete a themed set (space, tux, cowboy, circus…) for bonus points.",
 };
 
 function verdict(r) {
-  const [, title, lines] = TIERS.find(([min]) => r.score >= min);
+  const [, title, lines] = tierOf(r.score);
   const line = lines[Math.floor(Math.random() * lines.length)];
   const weakest = r.parts.slice().sort((a, b) => a.v / a.max - b.v / b.max)[0];
-  const tip = r.score >= 9.5 ? "" : " " + ADVICE[weakest.key];
-  const style = r.topStyle !== "none" && r.parts[1].v / 3 > 0.6 ? ` Strong ${r.topStyle} energy.` : "";
+  const tip = r.clash ? " Too many themes at once — it reads as noise." : r.score >= 9.5 ? "" : " " + ADVICE[weakest.key];
+  const style = r.topStyle !== "none" && r.share >= 0.75 ? ` Strong ${r.topStyle} energy.` : "";
   return { title, quote: `“${line}”${style}${tip}` };
 }
 
@@ -1531,42 +1565,79 @@ let activeCat = "top";
 try { activeCat = localStorage.getItem("duc-tab") || "top"; } catch {}
 if (!BY_CAT[activeCat]) activeCat = "top";
 
+const isChanged = (c) => (c.id === "acc" ? state.acc.length > 0 : state[c.id] !== DEFAULTS[c.id]);
+function selectTab(id) {
+  activeCat = id;
+  try { localStorage.setItem("duc-tab", id); } catch {}
+  renderTabs(); renderItems();
+}
 function renderTabs() {
   tabsEl.innerHTML = "";
   for (const c of CATS) {
     const b = document.createElement("button");
-    b.textContent = c.label;
+    b.innerHTML = `<span class="te" aria-hidden="true">${c.emo}</span><span>${c.label}</span>${isChanged(c) ? '<span class="dot" aria-label="changed"></span>' : ""}`;
     b.setAttribute("role", "tab");
     b.setAttribute("aria-selected", String(c.id === activeCat));
-    b.onclick = () => {
-      activeCat = c.id;
-      try { localStorage.setItem("duc-tab", c.id); } catch {}
-      renderTabs(); renderItems();
-    };
+    b.onclick = () => selectTab(c.id);
     tabsEl.appendChild(b);
   }
 }
 function renderItems() {
   const cat = CATS.find((c) => c.id === activeCat);
-  hintEl.textContent = cat.hint;
+  hintEl.textContent = cat.id === "acc" ? `${cat.hint} (${state.acc.length}/${MAX_ACC} on)` : cat.hint;
   itemsEl.innerHTML = "";
   for (const it of BY_CAT[activeCat]) {
     const on = activeCat === "acc" ? state.acc.includes(it.id) : state[activeCat] === it.id;
     const b = document.createElement("button");
     b.className = "item";
     b.setAttribute("aria-pressed", String(on));
-    b.title = it.style.length ? `Style: ${it.style.join(", ")}` : it.name;
-    b.innerHTML = `<span class="emo">${it.emo}</span><span>${it.name}</span>` +
-      (it.color != null ? `<span class="sw" style="background:#${it.color.toString(16).padStart(6, "0")}"></span>` : "") +
-      (it.bold ? `<span class="bold">${"🔥".repeat(it.bold)}</span>` : "");
+    const wildLabel = ["", "a bit wild", "wild", "very wild"][it.bold];
+    b.title = [it.name, it.style.length ? `Style: ${it.style.join(", ")}` : "", wildLabel ? `Wildness: ${wildLabel}` : ""].filter(Boolean).join(" · ");
+    const sw = it.color != null ? `<span class="sw" style="background:#${it.color.toString(16).padStart(6, "0")}"></span>` : "";
+    const wild = it.bold ? `<span class="wild" aria-label="${wildLabel}">${[1, 2, 3].map((n) => `<i class="${n <= it.bold ? "on" : ""}"></i>`).join("")}</span>` : "";
+    b.innerHTML = `<span class="check" aria-hidden="true">✓</span><span class="emo" aria-hidden="true">${it.emo}</span><span>${it.name}</span><span class="meta">${sw}${wild}</span>`;
     b.onclick = () => equip(activeCat, it.id);
     itemsEl.appendChild(b);
+  }
+}
+function renderOutfit() {
+  const el = $("#outfit");
+  el.innerHTML = "";
+  const worn = [];
+  for (const c of CATS) {
+    if (c.id === "acc") state.acc.forEach((id) => worn.push([c, ITEMS[id]]));
+    else if (state[c.id] !== DEFAULTS[c.id]) worn.push([c, ITEMS[state[c.id]]]);
+  }
+  if (!worn.length) {
+    el.innerHTML = `<span class="empty">The default fit — pick something below to start styling.</span>`;
+    return;
+  }
+  for (const [c, it] of worn) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    const open = document.createElement("button");
+    open.textContent = `${it.emo} ${it.name}`;
+    open.title = `Change ${c.label.toLowerCase()}`;
+    open.onclick = () => selectTab(c.id);
+    const x = document.createElement("button");
+    x.className = "x"; x.textContent = "×"; x.setAttribute("aria-label", `Remove ${it.name}`);
+    x.onclick = () => (c.id === "acc" ? equip("acc", it.id) : equip(c.id, DEFAULTS[c.id]));
+    chip.append(open, x);
+    el.appendChild(chip);
   }
 }
 function updateDrip() {
   const r = rate();
   $("#dripNum").textContent = r.score.toFixed(1);
   $("#dripFill").style.width = r.score * 10 + "%";
+  $("#dripTier").textContent = tierOf(r.score)[1];
+}
+function refreshUI() {
+  renderTabs();
+  renderItems();
+  renderOutfit();
+  updateDrip();
+  $("#undoBtn").disabled = history.length === 0;
 }
 
 function randomize() {
@@ -1589,9 +1660,10 @@ function showRating() {
   const full = Math.round(r.score / 2 * 2) / 2;
   $("#resStars").textContent = "★".repeat(Math.floor(full)) + (full % 1 ? "⯪" : "") + "☆".repeat(5 - Math.ceil(full));
   $("#resBreakdown").innerHTML = r.parts.map((p) =>
-    `<div class="brow"><span>${p.label}</span><div class="bar"><i style="width:0"></i></div><span>${p.v.toFixed(1)}/${p.max}</span></div>`).join("");
-  $("#resCombos").innerHTML = r.combos.map((c) => `<span class="chip">${c} +0.75</span>`).join("") ||
-    `<span class="muted" style="font-size:.8rem">No combos yet — try matching a full theme.</span>`;
+    `<div class="brow"><span>${p.label}</span><div class="bar"><i></i></div><span>${p.v.toFixed(1)}/${p.max}</span></div>`).join("");
+  const chips = r.combos.slice(0, 3).map((c) => `<span class="chip">${c} +0.5</span>`);
+  if (r.clash) chips.push(`<span class="chip bad">💥 Style clash −1.0</span>`);
+  $("#resCombos").innerHTML = chips.join("") || `<span class="none">No theme combos yet — complete a full set for bonus points.</span>`;
   $("#overlay").hidden = false;
   requestAnimationFrame(() => {
     document.querySelectorAll(".brow i").forEach((el, i) => (el.style.width = (r.parts[i].v / r.parts[i].max) * 100 + "%"));
@@ -1602,32 +1674,34 @@ function showRating() {
     el.textContent = (r.score * (1 - (1 - k) ** 3)).toFixed(1);
     if (k < 1) requestAnimationFrame(tick);
   })(t0);
-  if (r.score >= 8) confetti();
+  if (r.score >= 8.5) confetti();
   $("#closeRes").focus();
 }
 
 $("#randomBtn").onclick = randomize;
-$("#resetBtn").onclick = () => loadState(DEFAULTS);
+$("#resetBtn").onclick = () => { if (CATS.some(isChanged)) loadState(DEFAULTS); };
+$("#undoBtn").onclick = undo;
 $("#rateBtn").onclick = showRating;
 $("#closeRes").onclick = () => ($("#overlay").hidden = true);
 $("#overlay").onclick = (e) => { if (e.target.id === "overlay") $("#overlay").hidden = true; };
-addEventListener("keydown", (e) => { if (e.key === "Escape") $("#overlay").hidden = true; });
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape") $("#overlay").hidden = true;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); }
+});
 
-let faceView = false;
 const VIEWS = {
-  full: { target: V(0, 1.0, 0), dist: 3.6 },
-  face: { target: V(0, HEAD_Y + 0.0, 0), dist: 0.95 },
+  full: { target: V(0, 0.95, 0), pos: V(0.9, 1.3, 4.0) },
+  face: { target: V(0, HEAD_Y - 0.005, 0), pos: V(0.22, HEAD_Y + 0.05, 0.78) },
 };
 let viewAnim = null;
-$("#viewBtn").onclick = (e) => {
-  faceView = !faceView;
-  e.currentTarget.setAttribute("aria-pressed", String(faceView));
-  const v = VIEWS[faceView ? "face" : "full"];
-  const dir = camera.position.clone().sub(controls.target).normalize();
-  dir.y = Math.max(-0.1, Math.min(0.3, dir.y));
-  dir.normalize();
-  viewAnim = { t: 0, fromT: controls.target.clone(), toT: v.target, fromP: camera.position.clone(), toP: v.target.clone().addScaledVector(dir, v.dist) };
-};
+function setView(name) {
+  const v = VIEWS[name];
+  $("#viewFull").setAttribute("aria-pressed", String(name === "full"));
+  $("#viewFace").setAttribute("aria-pressed", String(name === "face"));
+  viewAnim = { t: 0, fromT: controls.target.clone(), toT: v.target, fromP: camera.position.clone(), toP: v.pos };
+}
+$("#viewFull").onclick = () => setView("full");
+$("#viewFace").onclick = () => setView("face");
 $("#spinBtn").onclick = (e) => {
   controls.autoRotate = !controls.autoRotate;
   e.currentTarget.setAttribute("aria-pressed", String(controls.autoRotate));
@@ -1742,6 +1816,5 @@ function frame() {
   requestAnimationFrame(frame);
 }
 
-renderTabs();
-loadState(DEFAULTS);
+loadState(DEFAULTS, false);
 frame();
