@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web Apps</title>
+  <link rel="stylesheet" href="shared/base.css">
+  <style>
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 24px; }
+    .grid a { text-decoration: none; color: inherit; display: block; }
+    .grid a:hover .card { border-color: var(--accent); }
+    .grid h2 { margin: 0 0 4px; font-size: 1.05rem; }
+    .grid p { margin: 0; font-size: 0.9rem; }
+    .empty { margin-top: 24px; }
+    code { font-family: var(--mono); font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Web Apps</h1>
+    <p class="muted">A collection of small, self-contained apps.</p>
+    <div id="list" class="grid"></div>
+  </main>
+  <script type="module">
+    const list = document.querySelector("#list");
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    try {
+      const apps = await (await fetch("apps.json", { cache: "no-store" })).json();
+      if (!apps.length) {
+        list.outerHTML = `<p class="empty muted card">No apps yet. Create one with <code>npm run new -- my-app</code>.</p>`;
+      } else {
+        list.innerHTML = apps
+          .slice()
+          .reverse()
+          .map((a) => `<a href="apps/${esc(a.slug)}/"><div class="card"><h2>${esc(a.title)}</h2><p class="muted">${esc(a.description || a.created)}</p></div></a>`)
+          .join("");
+      }
+    } catch {
+      list.outerHTML = `<p class="empty muted card">Could not load apps.json — run <code>npm run dev</code> and open via http://localhost.</p>`;
+    }
+  </script>
+</body>
+</html>

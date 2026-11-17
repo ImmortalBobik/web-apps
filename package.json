@@ -1,0 +1,10 @@
+{
+  "name": "web-apps",
+  "private": true,
+  "type": "module",
+  "description": "A collection of small, self-contained web apps. No build step, no dependencies.",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "new": "node scripts/new-app.mjs"
+  }
+}

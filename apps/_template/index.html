@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{TITLE}}</title>
+  <meta name="description" content="{{DESCRIPTION}}">
+  <link rel="stylesheet" href="../../shared/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <a class="back" href="../../">&larr; All apps</a>
+    <h1>{{TITLE}}</h1>
+    <p class="muted">{{DESCRIPTION}}</p>
+
+    <section class="card" id="app">
+      <p>Count: <strong id="count">0</strong></p>
+      <button class="primary" id="inc">+1</button>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

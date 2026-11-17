@@ -1,0 +1,3 @@
+/* {{TITLE}} — app-specific styles. Shared tokens live in ../../shared/base.css */
+#app { display: flex; align-items: center; gap: 16px; }
+#app p { margin: 0; }
