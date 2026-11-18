@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Carter Dash</title>
+  <meta name="description" content="Hop Carter across busy lanes of tech traffic — how far can you go?">
+  <link rel="stylesheet" href="../../shared/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <a class="back" href="../../">&larr; All apps</a>
+    <h1>Carter Dash</h1>
+    <div class="scores"><span>Score <b id="score">0</b></span><span>Best <b id="best">0</b></span></div>
+  </header>
+  <main class="wrap">
+    <canvas id="game" aria-label="Carter Dash game"></canvas>
+    <div class="overlay" id="overlay">
+      <div class="panel">
+        <h2 id="title">Carter Dash</h2>
+        <p id="msg">Dodge the trucks, ride the motherboards across the cable rivers, and don't fall behind.</p>
+        <button class="primary" id="play">Play</button>
+        <p class="keys">Arrows / WASD · tap to hop forward · swipe to steer</p>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
