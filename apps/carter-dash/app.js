@@ -59,7 +59,7 @@ const row = (r) => (rows[r] ??= makeRow(r));
 
 function reset() {
   rows = [];
-  player = { x: 4, row: 1, hop: 0, face: 1, alive: true };
+  player = { x: 4, row: 1, hop: 1, face: 1, alive: true, offX: 0, offR: 0, land: 0, death: null, deathT: 0 };
   cam = -1; score = 0; bonus = 0; autoSpeed = 0; particles = [];
   updateScore();
 }
@@ -73,8 +73,11 @@ function move(dx, dr) {
   const target = row(nr);
   if (target.type !== "river") nx = Math.round(nx);
   if (target.type === "floor" && target.blocks.has(Math.round(nx))) return;
+  const vx = player.x + player.offX, vr = player.row + player.offR;
   player.x = Math.max(0, Math.min(COLS - 1, nx));
-  player.row = nr; player.hop = 1;
+  player.row = nr;
+  player.offX = vx - player.x; player.offR = vr - player.row;   // glide from where he visibly was
+  player.hop = 0;
   if (dx) player.face = dx;
   if (autoSpeed === 0) autoSpeed = 0.35;
   const f = row(nr);
@@ -106,9 +109,10 @@ function updateScore() {
   score = Math.max(score, player.row - 1);
   $("#score").textContent = score + bonus;
 }
-function die(msg) {
+function die(msg, kind = "squash") {
   if (!player.alive) return;
   player.alive = false;
+  player.death = kind; player.deathT = 0;
   deathMsg = msg;
   burst(player.x, player.row, "#fa5252");
   const total = score + bonus;
@@ -140,22 +144,30 @@ function update(dt) {
   }
   if (player.alive && state === "play") {
     const R = row(player.row), cx = player.x + 0.5;
-    if (R.type === "road" && R.ents.some((e) => cx > e.x + 0.12 && cx < e.x + e.len - 0.12)) die("Flattened by a delivery truck. Should've waited for the gap.");
+    if (R.type === "road" && R.ents.some((e) => cx > e.x + 0.12 && cx < e.x + e.len - 0.12)) die("Flattened by a delivery truck. Should've waited for the gap.", "squash");
     if (R.type === "river") {
       const raft = R.ents.find((e) => cx > e.x && cx < e.x + e.len);
-      if (!raft) die("Fell into the cable river. Ride the motherboards!");
+      if (!raft) die("Fell into the cable river. Ride the motherboards!", "sink");
       else {
         player.x += R.dir * R.speed * mult * dt;
-        if (player.x < -0.4 || player.x > COLS - 0.6) die("Carried off the edge on a motherboard.");
+        if (player.x < -0.4 || player.x > COLS - 0.6) die("Carried off the edge on a motherboard.", "sink");
       }
     }
     // camera: follows Carter, and keeps creeping forward on its own
     autoSpeed = autoSpeed ? Math.min(1.7, 0.35 + score * 0.012) : 0;
     const target = player.row - 3;
     cam = Math.max(cam + autoSpeed * dt, cam + (target - cam) * Math.min(1, dt * 4));
-    if (player.row < cam - 0.2) die("Too slow — the deadline caught up with you.");
+    if (player.row < cam - 0.2) die("Too slow — the deadline caught up with you.", "fade");
   }
-  player.hop = Math.max(0, player.hop - dt * 8);
+  // smooth hop: ease the visual offset to zero, with a little landing squash
+  const wasHop = player.hop < 1;
+  player.hop = Math.min(1, player.hop + dt / 0.14);
+  const k = 1 - Math.pow(1 - player.hop, 3);
+  if (player.hop < 1) { player.offX *= 1 - k * 0.6; player.offR *= 1 - k * 0.6; }
+  else { player.offX = 0; player.offR = 0; }
+  if (wasHop && player.hop >= 1) player.land = 1;
+  player.land = Math.max(0, player.land - dt * 7);
+  if (!player.alive) player.deathT += dt;
   for (const p of particles) { p.x += p.vx * dt; p.r += p.vr * dt; p.vr -= 9 * dt; p.life -= dt; }
   particles = particles.filter((p) => p.life > 0);
 }
@@ -207,7 +219,11 @@ function drawRow(r) {
     }
   }
 }
-function drawCarter() {
+const photo = new Image();
+photo.src = "carter.png";
+// face crop inside the photo (centre and radius in source pixels)
+const FACE = { x: 104, y: 138, r: 86 };
+function drawCarterOld() {
   const lift = Math.sin(player.hop * Math.PI) * T * 0.18;
   const cx = (player.x + 0.5) * T, cy = sy(player.row) + T * 0.55 - lift;
   ctx.fillStyle = "rgb(0 0 0 / 0.18)";
@@ -224,13 +240,48 @@ function drawCarter() {
   ctx.beginPath(); ctx.arc(cx - T * 0.07 + player.face * 0.03 * T, cy - T * 0.1, T * 0.025, 0, 7); ctx.fill();
   ctx.beginPath(); ctx.arc(cx + T * 0.07 + player.face * 0.03 * T, cy - T * 0.1, T * 0.025, 0, 7); ctx.fill();
 }
+function drawCarter() {
+  const t = player.hop, lift = Math.sin(t * Math.PI) * T * 0.32;
+  const gx = (player.x + player.offX + 0.5) * T, gy = sy(player.row + player.offR) + T * 0.62;
+  let sx = 1 + player.land * 0.18 - Math.sin(t * Math.PI) * 0.08, syk = 1 - player.land * 0.16 + Math.sin(t * Math.PI) * 0.1;
+  let alpha = 1, rot = player.hop < 1 ? player.face * 0.12 * Math.sin(t * Math.PI) : 0;
+  if (!player.alive) {
+    const d = Math.min(1, player.deathT / 0.35);
+    if (player.death === "squash") { sx = 1 + 0.6 * d; syk = 1 - 0.75 * d; }
+    if (player.death === "sink") { sx = syk = 1 - 0.8 * d; alpha = 1 - d; }
+    if (player.death === "fade") { alpha = 1 - d; rot += d * 0.6; }
+  }
+  // shadow shrinks while he is in the air
+  ctx.globalAlpha = 0.2 * alpha;
+  ctx.fillStyle = "#000";
+  ctx.beginPath(); ctx.ellipse(gx, gy + T * 0.2, T * 0.26 * (1 - lift / T), T * 0.08, 0, 0, 7); ctx.fill();
+  ctx.globalAlpha = alpha;
+  ctx.save();
+  ctx.translate(gx, gy + T * 0.2 - lift);
+  ctx.rotate(rot);
+  ctx.scale(sx, syk);
+  rr(-T * 0.2, -T * 0.32, T * 0.4, T * 0.3, T * 0.12, "#1e1e1e");                // black tee
+  const R = T * 0.3, hy = -T * 0.52;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(0, hy, R, 0, Math.PI * 2); ctx.closePath();
+  ctx.fillStyle = "#3a2418"; ctx.fill();
+  if (photo.complete && photo.naturalWidth) {
+    ctx.clip();
+    ctx.drawImage(photo, FACE.x - FACE.r, FACE.y - FACE.r, FACE.r * 2, FACE.r * 2, -R, hy - R, R * 2, R * 2);
+  }
+  ctx.restore();
+  ctx.lineWidth = Math.max(1.5, T * 0.035); ctx.strokeStyle = "#fff";
+  ctx.beginPath(); ctx.arc(0, hy, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
 function draw() {
   ctx.clearRect(0, 0, W, H);
   for (let r = Math.floor(cam) - 1; r < cam + VIEW_ROWS + 1; r++) drawRow(r);
-  if (player.alive) drawCarter();
+  if (player.alive || player.deathT < 0.6) drawCarter();
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, p.life / 0.6); ctx.fillStyle = p.color;
-    ctx.fillRect(p.x * T - 3, sy(p.r) - 3, 6, 6);
+    ctx.beginPath(); ctx.arc(p.x * T, sy(p.r), 3.5, 0, 7); ctx.fill();
   }
   ctx.globalAlpha = 1;
 }
@@ -238,7 +289,7 @@ function draw() {
 let last = performance.now();
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
-  if (state === "play") update(dt); else player.hop = 0;
+  if (state === "play") update(dt);
   draw();
   requestAnimationFrame(frame);
 }
