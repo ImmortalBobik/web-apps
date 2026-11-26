@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Bug Blaster</title>
+  <meta name="description" content="Squash the bugs on Carter's screen before they crash it — pure reflexes">
+  <link rel="stylesheet" href="../../shared/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <a class="back" href="../../">&larr; All apps</a>
+    <h1>Bug Blaster</h1>
+    <div class="hud">
+      <span class="lives" id="lives" aria-label="Lives"></span>
+      <span>x<b id="combo">1</b></span>
+      <span><b id="score">0</b></span>
+    </div>
+  </header>
+  <main class="wrap" id="wrap">
+    <canvas id="game" aria-label="Bug Blaster game"></canvas>
+    <div class="overlay" id="overlay">
+      <div class="panel">
+        <h2 id="title">Bug Blaster</h2>
+        <p id="msg">Bugs are crashing Carter's PC. Squash them before their timer runs out — faster hits score more.</p>
+        <ul class="legend">
+          <li><span class="dot bug"></span>Bug — tap it</li>
+          <li><span class="dot virus"></span>Virus — <b>don't</b> tap</li>
+          <li><span class="dot gold"></span>Golden GPU — big bonus</li>
+        </ul>
+        <div class="stats" id="stats" hidden></div>
+        <button class="primary" id="play">Play</button>
+        <p class="best">Best: <b id="best">0</b></p>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
