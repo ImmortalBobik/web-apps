@@ -10,7 +10,7 @@ body { display: flex; flex-direction: column; overflow: hidden; overscroll-behav
 .scores { display: flex; gap: 14px; font-size: 0.85rem; color: var(--muted); }
 .scores b { color: var(--text); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
 
-.wrap { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; background: var(--bg); }
+.wrap { position: relative; flex: 1; min-height: 0; width: 100%; max-width: none; margin: 0; padding: 0; display: grid; place-items: center; background: var(--bg); }
 canvas { display: block; max-width: 100%; max-height: 100%; touch-action: none; border-radius: 4px; }
 
 .overlay {

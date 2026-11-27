@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Overclock</title>
+  <meta name="description" content="Tap when the needle hits the green zone — push Carter's CPU as far as it goes">
+  <link rel="stylesheet" href="../../shared/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <a class="back" href="../../">&larr; All apps</a>
+    <h1>Overclock</h1>
+    <span class="best">Best <b id="best">3.0</b> GHz</span>
+  </header>
+  <main class="wrap" id="wrap">
+    <canvas id="game" aria-label="Overclock game"></canvas>
+    <p class="hint" id="hint">Tap / click / Space when the needle is in the green</p>
+    <div class="overlay" id="overlay">
+      <div class="panel">
+        <h2 id="title">Overclock</h2>
+        <p id="msg">The needle sweeps across the gauge. Hit it inside the green zone to push the clock higher. Dead-centre is a <b>Perfect</b>. Three misses and the CPU overheats.</p>
+        <div class="stats" id="stats" hidden></div>
+        <button class="primary" id="play">Start</button>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -16,5 +16,11 @@
     "title": "Bug Blaster",
     "description": "Squash the bugs on Carter's screen before they crash it — pure reflexes",
     "created": "2026-11-26"
+  },
+  {
+    "slug": "overclock",
+    "title": "Overclock",
+    "description": "Tap when the needle hits the green zone — push Carter's CPU as far as it goes",
+    "created": "2026-11-27"
   }
 ]
