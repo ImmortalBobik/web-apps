@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Carter Run</title>
+  <meta name="description" content="Run, jump and slide through Carter's PC — how far can you get?">
+  <link rel="stylesheet" href="../../shared/base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="back" href="../../" aria-label="All apps">&larr;</a>
+  <main class="wrap">
+    <canvas id="game" aria-label="Carter Run game"></canvas>
+    <div class="ui" id="ui">
+      <div class="big" id="big">Tap to run</div>
+      <div class="sub" id="sub">↑ jump · ↑↑ flip · ↓ slide</div>
+      <button class="again" id="again" hidden aria-label="Play again">↻</button>
+    </div>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
