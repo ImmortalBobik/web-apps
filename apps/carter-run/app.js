@@ -49,7 +49,7 @@ function runPose(p, sp) {
     o["k" + i] = -(0.12 + 1.55 * Math.pow(Math.max(0, c), 1.3));        // big knee bend on the recovery swing
     o["f" + i] = c > 0 ? 0.35 : -0.15 * s;                             // toe drops while recovering
     o["a" + i] = -0.95 * s;                                            // arms counter-swing
-    o["e" + i] = -(1.25 + 0.35 * s);
+    o["e" + i] = 1.3 - 0.4 * s;                                        // elbows bent forward, more on the forward swing
   }
   o.hipY = -45 + 3.2 * Math.cos(2 * p);                                // dip at each foot contact
   o.lean = lean;
@@ -57,12 +57,12 @@ function runPose(p, sp) {
   return o;
 }
 const POSES = {
-  idle: (t) => Object.assign(pose(), { hipY: -46 + Math.sin(t * 2.2) * 0.8, lean: 0.03, l0: 0.08, l1: -0.06, k0: -0.06, k1: -0.04, f0: -0.08, f1: 0.06, a0: 0.12 + Math.sin(t * 2.2) * 0.03, a1: -0.1, e0: -0.35, e1: -0.25, head: Math.sin(t * 0.9) * 0.05 }),
-  rise: () => Object.assign(pose(), { hipY: -44, lean: 0.1, l0: 1.05, l1: -0.35, k0: -1.75, k1: -0.45, f0: 0.5, f1: 0.3, a0: -2.7, a1: -2.3, e0: -0.35, e1: -0.55, head: -0.12 }),
-  fall: (t) => Object.assign(pose(), { hipY: -45, lean: 0.12, l0: 0.55, l1: 0.05, k0: -0.55, k1: -0.95, f0: 0.15, f1: 0.25, a0: -1.7 + Math.sin(t * 9) * 0.25, a1: 1.3 + Math.sin(t * 9 + 1) * 0.25, e0: -0.4, e1: -0.6, head: 0.08 }),
-  tuck: () => Object.assign(pose(), { hipY: -40, lean: 0.35, l0: 1.6, l1: 1.4, k0: -2.3, k1: -2.2, f0: 0.4, f1: 0.4, a0: 0.9, a1: 0.7, e0: -1.9, e1: -1.8, head: 0.3 }),
-  slide: () => Object.assign(pose(), { hipY: -13, lean: -1.12, l0: 1.5, l1: 1.25, k0: -0.08, k1: -0.32, f0: -0.25, f1: -0.1, a0: 1.25, a1: 0.55, e0: -0.4, e1: -0.95, head: 0.75 }),
-  land: () => Object.assign(pose(), { hipY: -34, lean: 0.32, l0: 0.55, l1: -0.25, k0: -1.15, k1: -0.85, f0: -0.55, f1: 0.2, a0: 0.5, a1: -0.7, e0: -1, e1: -0.9, head: -0.1 }),
+  idle: (t) => Object.assign(pose(), { hipY: -46 + Math.sin(t * 2.2) * 0.8, lean: 0.03, l0: 0.08, l1: -0.06, k0: -0.06, k1: -0.04, f0: -0.08, f1: 0.06, a0: 0.1 + Math.sin(t * 2.2) * 0.03, a1: -0.08, e0: 0.35, e1: 0.25, head: Math.sin(t * 0.9) * 0.05 }),
+  rise: () => Object.assign(pose(), { hipY: -44, lean: 0.14, l0: 1.05, l1: -0.35, k0: -1.75, k1: -0.45, f0: 0.5, f1: 0.3, a0: 1.45, a1: -0.95, e0: 1.0, e1: 1.1, head: -0.12 }),
+  fall: (t) => Object.assign(pose(), { hipY: -45, lean: 0.12, l0: 0.55, l1: 0.05, k0: -0.55, k1: -0.95, f0: 0.15, f1: 0.25, a0: 1.3 + Math.sin(t * 9) * 0.25, a1: -1.2 + Math.sin(t * 9 + 1) * 0.25, e0: 0.6, e1: 0.8, head: 0.08 }),
+  tuck: () => Object.assign(pose(), { hipY: -40, lean: 0.35, l0: 1.6, l1: 1.4, k0: -2.3, k1: -2.2, f0: 0.4, f1: 0.4, a0: 0.9, a1: 0.7, e0: 0.9, e1: 1.0, head: 0.3 }),
+  slide: () => Object.assign(pose(), { hipY: -13, lean: -1.12, l0: 1.5, l1: 1.25, k0: -0.08, k1: -0.32, f0: -0.25, f1: -0.1, a0: 1.6, a1: 0.4, e0: 0.4, e1: 0.9, head: 0.75 }),
+  land: () => Object.assign(pose(), { hipY: -34, lean: 0.32, l0: 0.55, l1: -0.25, k0: -1.15, k1: -0.85, f0: -0.55, f1: 0.2, a0: 0.7, a1: -0.6, e0: 1.0, e1: 0.9, head: -0.1 }),
   dead: (t) => Object.assign(pose(), { hipY: -42, lean: 0, l0: 0.7 + Math.sin(t * 16) * 0.5, l1: -0.5 + Math.cos(t * 13) * 0.5, k0: -0.6, k1: -0.9, f0: 0.3, f1: 0.1, a0: -2.4 + Math.sin(t * 18) * 0.7, a1: 2.1 + Math.cos(t * 15) * 0.7, e0: -0.4, e1: 0.5, head: Math.sin(t * 10) * 0.3 }),
 };
 
